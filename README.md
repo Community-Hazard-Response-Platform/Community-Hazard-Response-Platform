@@ -6,4 +6,4 @@ The platform uses PostgreSQL with PostGIS to support geospatial data and real-ti
 
 The schema also incorporates reference layers from OpenStreetMap, such as administrative areas and emergency facilities, to provide geographic context and support spatial queries. Spatial indexes and automated timestamp updates are used to ensure performance and data consistency.
 
-![Database schema diagram](docs/database-schema.png)
+![Database schema diagram](docs/Community_Hazard_Response_Platform-2026-02-17_20-32.png)
