@@ -12,7 +12,7 @@ The ETL process:
 
 ## Data Sources
 
-* **CAOP**: Portuguese administrative boundaries from Direção-Geral do Território
+* **CAOP**: Portuguese administrative boundaries from Direção-Geral do Território (auto-detects latest version)
 * **OpenStreetMap**: Emergency facilities via Overpass API (hospitals, fire stations, police, etc.)
 
 ## Structure
@@ -28,7 +28,7 @@ The ETL process:
 ├── etl/
 │   ├── __init__.py
 │   ├── config.py           # Config reader
-│   ├── db.py               # Database operations
+│   ├── dbController.py     # Database operations
 │   ├── ds.py               # Data source operations
 │   └── logs.py             # Logging utilities
 ├── main.py                 # Main ETL runner
@@ -37,14 +37,27 @@ The ETL process:
 
 ## Setup
 
-1. Install dependencies:
+1. Create conda environment and install dependencies:
 ```bash
-pip install -r requirements.txt
+conda create -n hazard_etl python=3.11
+conda activate hazard_etl
+conda install -c conda-forge geopandas sqlalchemy psycopg2 pyyaml requests
 ```
 
-2. Configure database in `config/config.yml`
+2. Configure database in `config/config.yml`:
+```yaml
+database:
+  host: "localhost"
+  port: "5432"
+  database: "hazard_response_db"
+  username: "postgres"
+  password: "your_password"
+```
 
-3. Ensure PostgreSQL with PostGIS is running
+3. Create database schema:
+```bash
+psql -h localhost -U postgres -d hazard_response_db -f path/to/model.sql
+```
 
 ## Usage
 
@@ -61,25 +74,40 @@ python main.py --config_file config/my_config.yml
 ## Process Flow
 
 1. **Extraction**
-   - Downloads CAOP administrative boundaries (ZIP)
-   - Extracts municipalities data
+   - Auto-detects and downloads latest CAOP version from DGT
+   - Skips download if already cached locally
    - Queries OSM Overpass API for facilities
 
 2. **Transformation**  
    - Converts to EPSG:3857 coordinate system
    - Cleans and standardizes column names
-   - Parses OSM tags for useful attributes
+   - Prepares data for database schema
 
 3. **Load**
-   - Inserts municipalities into database
-   - Inserts facilities into database
-   - Uses batch inserts for efficiency
+   - Inserts administrative areas into `administrative_area` table
+   - Inserts facilities into `facility` table
+   - Uses PostGIS ST_GeomFromText for geometry
 
 ## Output
 
-The ETL loads two main tables:
+The ETL populates two main database tables:
 
-* `municipalities` - Administrative boundaries
-* `facilities` - Emergency and healthcare facilities
+* `administrative_area` - Municipal and parish boundaries (3,327 areas)
+* `facility` - Emergency and healthcare facilities (~1,300+ facilities)
 
 All geometries are in EPSG:3857 for web mapping compatibility.
+
+## Configuration
+
+Edit `config/config.yml` to customize:
+
+- **Bounding box**: Default is Lisboa area for testing. Uncomment full Portugal bbox for complete data.
+- **Facility types**: Add or remove OSM facility tags as needed
+- **Database connection**: Update with your credentials
+
+## Notes
+
+- First run downloads CAOP (~50MB) and extracts facilities (5-10 min for Lisboa area)
+- Subsequent runs skip CAOP download if same version exists
+- Overpass API has rate limits - 5 second delay between requests
+- For full Portugal extraction, expect 30-60 minutes runtime
