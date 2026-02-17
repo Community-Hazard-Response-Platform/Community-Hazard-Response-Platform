@@ -39,9 +39,7 @@ The ETL process:
 
 1. Create conda environment and install dependencies:
 ```bash
-conda create -n hazard_etl python=3.11
-conda activate hazard_etl
-conda install -c conda-forge geopandas sqlalchemy psycopg2 pyyaml requests
+conda install -c conda-forge --file requirements.txt
 ```
 
 2. Configure database in `config/config.yml`:
@@ -56,7 +54,7 @@ database:
 
 3. Create database schema:
 ```bash
-psql -h localhost -U postgres -d hazard_response_db -f path/to/model.sql
+psql -h localhost -U postgres -d hazard_response_db -f ../db/model.sql
 ```
 
 ## Usage
