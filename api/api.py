@@ -5,7 +5,7 @@ from psycopg2.pool import SimpleConnectionPool
 from utils import format_geojson   
 
 DB_CONFIG = {
-    "database": "solidarity_db",
+    "database": "hazard_response_db",
     "user": "postgres",
     "password": "your_password",
     "host": "localhost",
@@ -206,7 +206,7 @@ def get_offers():
         cursor.close()
         release_db_connection(conn)
 
-    return jsonify(format_geojson(offers))  # 👈 FORMATO CORRECTO
+    return jsonify(format_geojson(offers))
 
 
 # ASSIGNMENTS

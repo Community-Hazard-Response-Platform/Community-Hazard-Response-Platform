@@ -35,4 +35,4 @@ database:
   port: "5432"
   database: "hazard_response_db"
   username: "postgres"
-  password: "cacaDeVaca8400"
+  password: "your_password"
