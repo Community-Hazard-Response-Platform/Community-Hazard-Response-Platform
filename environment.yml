@@ -1,0 +1,15 @@
+name: hazard_response_platform
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - flask
+  - pandas
+  - geopandas
+  - fiona
+  - shapely
+  - sqlalchemy
+  - psycopg2
+  - requests
+  - pyyaml

@@ -10,7 +10,7 @@ import smtplib
 from email.message import EmailMessage
 
 DB_CONFIG = {
-    "database": "community_hazard",
+    "database": "solidarity_db",
     "user": "postgres",
     "password": "belen2003",
     "host": "localhost",
@@ -480,78 +480,7 @@ def get_offers():
         cursor.close()
         release_db_connection(conn)
 
-    return jsonify(format_geojson(offers))  
-
-@app.route("/create-offer", methods=["GET", "POST"])
-def create_offer():
-
-    if "user_id" not in session:
-        return redirect("/")
-
-    if request.method == "GET":
-        return render_template("create_offer.html")
-
-    if request.method == "POST":
-        data = request.get_json()
-        user_id = session["user_id"]
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        query = """
-            INSERT INTO offer (user_id, title, descrip, category, geom, address_point)
-            VALUES (%s, %s, %s, %s,
-                ST_Transform(
-                    ST_SetSRID(ST_MakePoint(%s, %s), 4326),
-                    3857
-                ),
-                %s
-            )
-            RETURNING offer_id
-        """
-
-        values = (
-            user_id,
-            data.get("title"),
-            data.get("descrip"),
-            data.get("category"),
-            data.get("longitude"),
-            data.get("latitude"),
-            data.get("address_point")
-        )
-
-        try:
-            cursor.execute(query, values)
-            offer_id = cursor.fetchone()["offer_id"]
-            conn.commit()
-
-        except Exception as e:
-            conn.rollback()
-            print("CREATE OFFER ERROR:", e)
-            return jsonify({"error": "Failed to create offer"}), 500
-
-        finally:
-            cursor.close()
-            release_db_connection(conn)
-
-        return jsonify({"success": True, "offer_id": offer_id})
-
-
-# URGENCY CATEGORIES
-
-@app.route("/urgency-levels", methods=["GET"])
-def get_urgency_levels():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT urgency_id, name FROM urgency_domain ORDER BY urgency_id")
-        levels = cursor.fetchall()
-    finally:
-        cursor.close()
-        release_db_connection(conn)
-
-    return jsonify(levels)
-
+    return jsonify(format_geojson(offers))  # 👈 FORMATO CORRECTO
 
 
 # ASSIGNMENTS
