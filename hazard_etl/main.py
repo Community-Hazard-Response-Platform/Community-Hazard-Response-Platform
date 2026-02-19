@@ -155,9 +155,6 @@ def load(config: dict, chunksize: int = 1000) -> None:
         e.info("INSERTING FACILITIES INTO DATABASE")
         db.insert_geodata(facilities, schema=DB_SCHEMA, table=TABLE_FACILITIES, srid=3857, chunksize=chunksize)
         e.info("FACILITIES INSERTED")
-
-        e.done("LOAD COMPLETED SUCCESSFULLY")
-
     except Exception as err:
         e.die(f"LOAD: {err}")
 
@@ -200,11 +197,11 @@ def main(config_file: str) -> None:
     """
     config = e.read_config(config_file)
     
-    # msg = time_this_function(extraction, config=config)
-    # e.info(msg)
+    msg = time_this_function(extraction, config=config)
+    e.info(msg)
     
-    # msg = time_this_function(transformation, config=config)
-    # e.info(msg)
+    msg = time_this_function(transformation, config=config)
+    e.info(msg)
     
     msg = time_this_function(load, config=config, chunksize=1000)
     e.info(msg)
