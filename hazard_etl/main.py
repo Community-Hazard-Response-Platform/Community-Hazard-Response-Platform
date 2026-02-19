@@ -197,11 +197,11 @@ def main(config_file: str) -> None:
     """
     config = e.read_config(config_file)
     
-    # msg = time_this_function(extraction, config=config)
-    # e.info(msg)
+    msg = time_this_function(extraction, config=config)
+    e.info(msg)
     
-    # msg = time_this_function(transformation, config=config)
-    # e.info(msg)
+    msg = time_this_function(transformation, config=config)
+    e.info(msg)
     
     msg = time_this_function(load, config=config, chunksize=1000)
     e.info(msg)

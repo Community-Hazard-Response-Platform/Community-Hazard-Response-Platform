@@ -33,6 +33,6 @@ osm:
 database:
   host: "localhost"
   port: "5432"
-  database: "hazard_response_db"
+  database: "community_hazard"
   username: "postgres"
-  password: "your_password"
+  password: "belen2003"
