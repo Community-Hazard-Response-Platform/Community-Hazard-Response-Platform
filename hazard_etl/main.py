@@ -43,7 +43,6 @@ def extraction(config: dict) -> None:
 
     # Extract OSM facilities
     e.info("EXTRACTING OSM FACILITIES")
-    bbox = tuple(config["osm"]["bbox"])
     overpass_url = config["osm"]["overpass_url"]
 
     all_facilities = []
@@ -51,7 +50,7 @@ def extraction(config: dict) -> None:
     for category, facilities in config["osm"]["facility_tags"].items():
         for facility_type, tags in facilities.items():
             e.info(f"Extracting {facility_type}...")
-            gdf = e.extract_osm_data(bbox, tags, overpass_url)
+            gdf = e.extract_osm_data(tags, overpass_url)
             if gdf is not None:
                 gdf['facility_type'] = facility_type
                 all_facilities.append(gdf)
@@ -138,7 +137,9 @@ def load(config: dict, chunksize: int = 1000) -> None:
             password=config["database"]["password"]
         )
 
-        # Load administrative areas
+        e.info("CLEARING EXISTING DATA")
+        db.truncate_tables(["facility", "administrative_area"])
+
         e.info("READING ADMINISTRATIVE AREAS")
         admin_areas = e.read_gpkg(f"{PROCESSED_DIR}/administrative_area.geojson")
         e.info(f"Loaded {len(admin_areas)} administrative areas")
@@ -147,7 +148,6 @@ def load(config: dict, chunksize: int = 1000) -> None:
         db.insert_geodata(admin_areas, schema=DB_SCHEMA, table=TABLE_ADMIN_AREAS, srid=3857, chunksize=chunksize)
         e.info("ADMINISTRATIVE AREAS INSERTED")
 
-        # Load facilities
         e.info("READING FACILITIES")
         facilities = e.read_gpkg(f"{PROCESSED_DIR}/facility.geojson")
         e.info(f"Loaded {len(facilities)} facilities")
@@ -197,11 +197,11 @@ def main(config_file: str) -> None:
     """
     config = e.read_config(config_file)
     
-    msg = time_this_function(extraction, config=config)
-    e.info(msg)
+    # msg = time_this_function(extraction, config=config)
+    # e.info(msg)
     
-    msg = time_this_function(transformation, config=config)
-    e.info(msg)
+    # msg = time_this_function(transformation, config=config)
+    # e.info(msg)
     
     msg = time_this_function(load, config=config, chunksize=1000)
     e.info(msg)
