@@ -15,7 +15,12 @@
 </head>
 <body>
 
-<div id="map"></div>
+<div id="map">
+    <div class="leaflet-control-zoom leaflet-bar">
+        <a class="leaflet-control-zoom-in">+</a>
+        <a class="leaflet-control-zoom-out">−</a>
+    </div>
+</div>
 
 <!-- Toggle sidebar button -->
 <button id="btn-toggle" class="btn-primary toggle-btn">
@@ -28,16 +33,16 @@
 <div class="sidebar" id="sidebar">
     <div class="sidebar-buttons">
         <div class="button-row">
-            <button class="btn-primary">My Needs</button>
+            <button class="btn-primary" id="btn-my-needs">My Needs</button>
             <button class="btn-primary btn-add" id="add-need-btn">+</button>
         </div>
 
         <div class="button-row">
-            <button class="btn-primary">My Offers</button>
+            <button class="btn-primary" id="btn-my-offers">My Offers</button>
             <button class="btn-primary btn-add" id="add-offer-btn">+</button>
         </div>
 
-        <button class="btn-primary">My Assignments</button>
+        <button class="btn-primary" id="btn-my-assignments">My Assignments</button>
     </div>
         
 
@@ -59,7 +64,7 @@
 
 
 <!-- Search bar -->
-<div class="search-bar">
+<div class="search-bar"> 
     <select id="filterSelect">
         <option value="needs">Needs</option>
         <option value="offers">Offers</option>
@@ -67,12 +72,15 @@
         <option value="all">All</option>
     </select>
 
-    <select id="facilitySelect">
-    </select>
+    <select id="facilitySelect"></select>
 
-    <input type="text" id="searchInput" placeholder="Search by administrative area...">
-    <button id="searchBtn">Search</button>
+    <div class="autocomplete-wrapper">
+        <input type="text" id="searchInput" placeholder="Search by administrative area...">
+        <ul id="suggestions" class="autocomplete-list"></ul>
+    </div>
+    <button id="searchBtn" class="btn-primary">Search</button>
 </div>
+
 
 
 
@@ -85,6 +93,10 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
+//L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+//    attribution: 'Tiles &copy; Esri'
+//}).addTo(map);
+
 L.control.zoom({
     position: 'bottomright'  
 }).addTo(map);
@@ -93,6 +105,7 @@ L.control.zoom({
 let needMarkers = [];
 let offerMarkers = [];
 let facilityMarkers = [];
+let assignmentMarkers = [];
 
 
 // Icons for needs and offers
@@ -110,12 +123,21 @@ var offerIcon = L.icon({
     popupAnchor: [0, -35]
 });
 
-var facilityIcon = L.icon({
+var assignmentIcon = L.icon({
     iconUrl: '/static/images/pin-blue.png',
     iconSize: [30, 40],
     iconAnchor: [15, 40],
     popupAnchor: [0, -35]
 });
+
+var facilityIcon = {
+    radius: 3,                 
+    fillColor: "#0B3D91",     
+    color: "#0B3D91",         
+    weight: 1,
+    opacity: 1,
+    fillOpacity: 0.9
+};
 
 function mercatorToLatLng(x, y) {
     const R = 6378137; 
@@ -138,54 +160,74 @@ toggleBtn.addEventListener("click", () => {
 
 // search funtion
 function applySearch() {
-    const query = document.getElementById("searchInput").value;
+    const query = document.getElementById("searchInput").value.trim();
     const filter = document.getElementById("filterSelect").value;
     const selectedFacilities = Array.from(facilitySelect.selectedOptions).map(opt => opt.value);
 
     // Construir query string
     const params = new URLSearchParams();
-    params.append("query", query);
-    params.append("type", filter);
+    if (query) params.append("query", query);
+    if (filter) params.append("type", filter);
     selectedFacilities.forEach(f => params.append("facilityTypes", f));
 
     fetch("/search?" + params.toString())
         .then(res => res.json())
         .then(data => {
-            // Limpiar markers previos
-            needMarkers.forEach(m => map.removeLayer(m));
-            offerMarkers.forEach(m => map.removeLayer(m));
-            facilityMarkers.forEach(m => map.removeLayer(m));
-
+            // Limpiar todos los markers
+            [...needMarkers, ...offerMarkers, ...facilityMarkers].forEach(m => map.removeLayer(m));
             needMarkers = [];
             offerMarkers = [];
             facilityMarkers = [];
 
-            // Crear nuevos markers según resultados
+            // Dibujar markers filtrados
             data.needs.forEach(n => {
-                const geo = n.geom.coordinates;
-                const m = L.marker([geo[1], geo[0]], {icon: needIcon})
-                          .bindPopup(`<b>${n.title}</b><br>${n.descrip}`)
-                          .addTo(map);
-                needMarkers.push(m);
+                if (n.geom) {
+                    const geomObj = JSON.parse(n.geom);
+                    const [x, y] = geomObj.coordinates;
+                    const [lat, lng] = mercatorToLatLng(x, y);
+                    const m = L.marker([lat, lng], {icon: needIcon})
+                                .bindPopup(`<b>${n.title}</b><br>${n.descrip}`)
+                                .addTo(map);
+                    needMarkers.push(m);
+                }
             });
 
+
             data.offers.forEach(o => {
-                const geo = o.geom.coordinates;
-                const m = L.marker([geo[1], geo[0]], {icon: offerIcon})
-                          .bindPopup(`<b>${o.title || 'Offer'}</b><br>${o.descrip}`)
-                          .addTo(map);
-                offerMarkers.push(m);
+                if (o.geom) {
+                    const geomObj = JSON.parse(o.geom);
+                    const [x, y] = geomObj.coordinates;
+                    const [lat, lng] = mercatorToLatLng(x, y);
+                    const m = L.marker([lat, lng], {icon: offerIcon})
+                                .bindPopup(`<b>${o.title}</b><br>${o.descrip}`)
+                                .addTo(map);
+                    offerMarkers.push(m);
+                }
             });
 
             data.facility.forEach(f => {
-                const geo = f.geom.coordinates;
-                const m = L.marker([geo[1], geo[0]], {icon: facilityIcon})
-                          .bindPopup(`<b>${f.name}</b><br>${f.facility_type}`)
-                          .addTo(map);
-                facilityMarkers.push(m);
+                if (f.geom) {
+                    const geomObj = JSON.parse(f.geom); // Parsear string JSON
+                    const [x, y] = geomObj.coordinates;
+                    const [lat, lng] = mercatorToLatLng(x, y);
+                    const m = L.circleMarker([lat, lng], facilityIcon)
+                                .bindPopup(`<b>${f.name_fac}</b><br>${f.facility_type}`)
+                                .addTo(map);
+                    facilityMarkers.push(m);
+                }
             });
-        });
+
+
+            // ajustar mapa al área de resultados
+            const allMarkers = [...needMarkers, ...offerMarkers, ...facilityMarkers];
+            if (allMarkers.length > 0) {
+                const group = L.featureGroup(allMarkers);
+                map.fitBounds(group.getBounds().pad(0.2));
+            }
+        })
+        .catch(err => console.error("Search error:", err));
 }
+
 
 
 // to bring the facilities
@@ -250,7 +292,7 @@ fetch("/facility-types")
     fetch('/facilities').then(res => res.json()).then(data => {
         data.features.forEach(f => {
             const [lat, lng] = mercatorToLatLng(f.geometry.coordinates[0], f.geometry.coordinates[1]);
-            const m = L.marker([lat, lng], {icon: facilityIcon})
+            const m = L.circleMarker([lat, lng], facilityIcon)
                         .bindPopup(`<b>${f.properties.name_fac}</b><br>${f.properties.facility_type}`)
                         .addTo(map);
 
@@ -295,6 +337,152 @@ fetch("/facility-types")
     document.getElementById("add-need-btn").addEventListener("click", function() {
         window.location.href = "/create-need";
     });
+
+    document.getElementById("searchBtn").addEventListener("click", () => {
+        applySearch();
+    });
+
+
+    document.getElementById("searchInput").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();  
+            applySearch();
+        }
+    });
+
+const searchInput = document.getElementById("searchInput");
+const suggestions = document.getElementById("suggestions");
+let selectedArea = null;
+
+searchInput.addEventListener("input", () => {
+    const val = searchInput.value.trim();
+    selectedArea = null; // resetear selección
+
+    if (val.length < 2) {
+        suggestions.innerHTML = "";
+        return;
+    }
+
+    fetch(`/admin-areas?q=${encodeURIComponent(val)}`)
+        .then(res => res.json())
+        .then(data => {
+            suggestions.innerHTML = "";
+            data.forEach(area => {
+                const li = document.createElement("li");
+                li.textContent = area.name_area;
+                li.dataset.id = area.id;
+                li.addEventListener("click", () => {
+                    searchInput.value = area.name_area;
+                    selectedArea = area.id;
+                    suggestions.innerHTML = "";
+                });
+                suggestions.appendChild(li);
+            });
+        })
+        .catch(err => console.error(err));
+});
+
+// Cerrar lista al hacer click fuera
+document.addEventListener("click", (e) => {
+    if (!searchInput.contains(e.target) && !suggestions.contains(e.target)) {
+        suggestions.innerHTML = "";
+    }
+});
+
+// Al presionar Enter
+searchInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        if (selectedArea) {
+            applySearch(); // tu función existente
+        } else {
+            alert("Please select a valid administrative area from the list.");
+        }
+    }
+});
+
+function showUserItems(type) {
+    // Limpiar todos los markers primero
+    [...needMarkers, ...offerMarkers, ...facilityMarkers, ...assignmentMarkers].forEach(m => map.removeLayer(m));
+    needMarkers = [];
+    offerMarkers = [];
+    facilityMarkers = [];
+    assignmentMarkers = [];
+
+    // Elegir endpoint según el tipo
+    let url = '';
+    if (type === 'needs') url = '/my-needs';
+    if (type === 'offers') url = '/my-offers';
+    if (type === 'assignments') url = '/my-assignments';
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+
+            if (type === 'needs') {
+                data.features.forEach(n => {
+                    const geomObj = typeof n.geom === "string" ? JSON.parse(n.geom) : n.geom;
+                    const [x, y] = geomObj.coordinates;
+                    const [lat, lng] = mercatorToLatLng(x, y);
+
+                    const m = L.marker([lat, lng], {icon: needIcon})
+                                .bindPopup(`<b>${n.title}</b><br>${n.descrip}`)
+                                .addTo(map);
+
+                    needMarkers.push(m);
+                });
+            }
+
+            if (type === 'offers') {
+                data.features.forEach(o => {
+                    const geomObj = typeof o.geom === "string" ? JSON.parse(o.geom) : o.geom;
+                    const [x, y] = geomObj.coordinates;
+                    const [lat, lng] = mercatorToLatLng(x, y);
+
+                    const m = L.marker([lat, lng], {icon: offerIcon})
+                                .bindPopup(`<b>${o.title}</b><br>${o.descrip}`)
+                                .addTo(map);
+
+                    offerMarkers.push(m);
+                });
+            }
+
+            if (type === 'assignments') {
+                data.features.forEach(a => {
+                    const geomObj = JSON.parse(a.geom);
+                    const [lng, lat] = geomObj.coordinates;
+                    const m = L.marker([lat, lng], {icon: assignmentIcon})
+                                .bindPopup(`<b>${a.title}</b><br>${a.descrip}`)
+                                .addTo(map);
+                    assignmentMarkers.push(m);
+                });
+            }
+
+            // Ajustar mapa al área de resultados
+            const allMarkers = [...needMarkers, ...offerMarkers, ...assignmentMarkers];
+            if (allMarkers.length > 0) {
+                const group = L.featureGroup(allMarkers);
+                map.fitBounds(group.getBounds().pad(0.2));
+            }
+        })
+        .catch(err => console.error(`Error loading user ${type}:`, err));
+}
+
+// Event listeners
+document.getElementById("btn-my-needs").addEventListener("click", () => {
+    showUserItems('needs');
+});
+
+document.getElementById("btn-my-offers").addEventListener("click", () => {
+    showUserItems('offers');
+});
+
+document.getElementById("btn-my-assignments").addEventListener("click", () => {
+    showUserItems('assignments')
+});
+
+
+
 
 </script>
 

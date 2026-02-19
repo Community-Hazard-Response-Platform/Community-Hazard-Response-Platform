@@ -455,8 +455,51 @@ def delete_need(id):
 
     return jsonify({"message": f"Need {id} deleted"})
 
+@app.route("/my-needs")
+def my_needs():
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT ST_AsGeoJSON(geom) AS geom, title, descrip
+            FROM need
+            WHERE user_id=%s
+        """, (user_id,))
+        features = [{"geom": row["geom"], "title": row["title"], "descrip": row["descrip"]} 
+                    for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        release_db_connection(conn)
+
+    return jsonify({"features": features})
+
+
 
 # OFFERS (GeoJSON)
+
+@app.route("/my-offers", methods=["GET"])
+def my_offers():
+    user_id = session["user_id"]
+    if not user_id:
+        return jsonify({"features": []})
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT ST_AsGeoJSON(geom) AS geom, title, descrip
+            FROM offer
+            WHERE user_id = %s
+        """, (user_id,))
+        features = [{"geom": row["geom"], "title": row["title"], "descrip": row["descrip"]} 
+                            for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        release_db_connection(conn)
+
+    return jsonify({"features": features})
+
 
 @app.route('/offers', methods=['GET'])
 def get_offers():
@@ -480,7 +523,76 @@ def get_offers():
         cursor.close()
         release_db_connection(conn)
 
-    return jsonify(format_geojson(offers))  # 👈 FORMATO CORRECTO
+    return jsonify(format_geojson(offers))  
+
+
+
+@app.route('/create-offer', methods=['POST'])
+def create_offer():
+
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    
+    data = request.get_json()
+    user_id = session["user_id"]
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO offer (
+                user_id,
+                title,
+                descrip,
+                category,
+                geom,
+                address_point,
+                status_id
+            )
+            VALUES (
+                %s,
+                %s,
+                %s,
+                %s,
+                ST_Transform(
+                    ST_SetSRID(ST_MakePoint(%s, %s), 4326),
+                    3857
+                ),
+                %s,
+                (SELECT status_id FROM status_domain WHERE code = 'active')
+            )
+            RETURNING offer_id;
+        """, (
+            user_id,
+            data.get('title'),
+            data.get('descrip'),
+            data.get('category'),
+            data.get('lng'),   
+            data.get('lat'),   
+            data.get('address_point')
+        ))
+
+        new_offer_id = cursor.fetchone()['offer_id']
+        conn.commit()
+
+        return jsonify({
+            "message": "Offer created successfully",
+            "offer_id": new_offer_id,
+            "success": True
+        }), 201
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        release_db_connection(conn)
+
+@app.route("/create-offer", methods=["GET"])
+def create_offer_form():
+    return render_template("create_offer.html")
 
 
 # ASSIGNMENTS
@@ -512,6 +624,39 @@ def create_assignment():
         release_db_connection(conn)
 
     return jsonify({"message": f"Assignment {assignment_id} created"}), 201
+
+@app.route("/my-assignments")
+def my_assignments():
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Seleccionamos el geom del need asociado al assignment del usuario
+        cursor.execute("""
+            SELECT 
+                ST_AsGeoJSON(n.geom) AS geom, 
+                n.title, 
+                n.descrip
+            FROM assignments a
+            JOIN need n ON n.need_id = a.need_id
+            JOIN offer o ON o.offer_id = a.offer_id
+            WHERE n.user_id = %s OR o.user_id = %s
+        """, (user_id, user_id))
+        
+        features = [
+            {
+                "geom": row["geom"],
+                "title": row["title"],
+                "descrip": row["descrip"]
+            } 
+            for row in cursor.fetchall()
+        ]
+    finally:
+        cursor.close()
+        release_db_connection(conn)
+
+    return jsonify({"features": features})
+
 
 
 @app.route('/assignments/<id>/complete', methods=['PUT'])
@@ -566,6 +711,26 @@ def get_facilities():
 
     return jsonify(format_geojson(facilities))
 
+#URGENCY
+@app.route('/urgency-levels', methods=['GET'])
+def get_urgency_levels():
+    conn = get_db_connection()
+    cursor = conn.cursor()   
+
+    try:
+        cursor.execute("""
+            SELECT urgency_id, code, name
+            FROM urgency_domain
+            ORDER BY urgency_id
+        """)
+        rows = cursor.fetchall()
+
+        return jsonify(rows)
+
+    finally:
+        cursor.close()
+        release_db_connection(conn)
+
 
 
 # FOR THE SEARCH
@@ -584,8 +749,8 @@ def search():
         if query:
             cursor.execute("""
                 SELECT geom 
-                FROM admin_area
-                WHERE LOWER(name) LIKE %s
+                FROM administrative_area
+                WHERE LOWER(name_area) LIKE %s
             """, (f"%{query}%",))
             area = cursor.fetchone()
             if area:
@@ -619,14 +784,14 @@ def search():
         if filter_type in ("facility", "all"):
             if facility_types and "all" not in facility_types:
                 types_clause = tuple(facility_types)
-                sql = f"SELECT name, facility_type, ST_AsGeoJSON(geom) AS geom FROM facility WHERE facility_type IN %s"
+                sql = f"SELECT name_fac, facility_type, ST_AsGeoJSON(geom) AS geom FROM facility WHERE facility_type IN %s"
                 if geom_filter:
                     sql += " AND ST_Within(geom, %s)"
                     cursor.execute(sql, (types_clause, geom_filter))
                 else:
                     cursor.execute(sql, (types_clause,))
             else:
-                sql = "SELECT name, facility_type, ST_AsGeoJSON(geom) AS geom FROM facility"
+                sql = "SELECT name_fac, facility_type, ST_AsGeoJSON(geom) AS geom FROM facility"
                 if geom_filter:
                     sql += " WHERE ST_Within(geom, %s)"
                     cursor.execute(sql, (geom_filter,))
@@ -639,6 +804,27 @@ def search():
         release_db_connection(conn)
 
     return jsonify(results)
+
+@app.route("/admin-areas", methods=["GET"])
+def get_admin_areas():
+    query = request.args.get("q", "")
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT area_id, name_area
+            FROM administrative_area
+            WHERE name_area ILIKE %s
+            ORDER BY name_area
+            LIMIT 10
+        """, (f"%{query}%",))
+        areas = [{"area_id": row["area_id"], "name_area": row["name_area"]} for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        release_db_connection(conn)
+
+    return jsonify(areas)
+
 
 
 

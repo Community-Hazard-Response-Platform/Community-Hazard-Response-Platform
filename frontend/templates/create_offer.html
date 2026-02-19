@@ -81,12 +81,11 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                user_id: null,  // we add from the backend, api.py
                 title,
                 descrip: description,
                 category: parseInt(category), // enviamos el id de category
-                latitude: lat,
-                longitude: lng,
+                lat: lat,
+                lng: lng,
                 address_point: address_point
             })
         })
