@@ -1,0 +1,14 @@
+name: hazard_etl
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - geopandas
+  - pandas
+  - fiona
+  - shapely
+  - sqlalchemy
+  - psycopg2
+  - requests
+  - pyyaml
