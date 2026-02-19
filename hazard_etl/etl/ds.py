@@ -1,11 +1,8 @@
 from .logs import die, info
 import requests
-import zipfile
 import geopandas as gpd
-import pandas as pd
 import json
 import time
-import re
 from pathlib import Path
 from datetime import datetime
 
@@ -125,14 +122,14 @@ def write_geojson(gdf: gpd.GeoDataFrame, fname: str) -> None:
         die(f"write_geojson: {e}")
 
 
-def extract_osm_data(bbox: tuple, tags: list, overpass_url: str, delay: int = 5) -> gpd.GeoDataFrame:
-    """Extracts data from OpenStreetMap using Overpass API
+def extract_osm_data(tags: list, overpass_url: str, delay: int = 5, attempts: int = 6) -> gpd.GeoDataFrame:
+    """Extracts data from OpenStreetMap using Overpass API, filtered to Portugal.
 
     Args:
-        bbox (tuple): bounding box (min_lat, min_lon, max_lat, max_lon)
         tags (list): list of OSM tags like ['amenity=hospital']
         overpass_url (str): Overpass API endpoint
         delay (int): delay between requests in seconds
+        attempts (int): number of attempts to access the Overpass API
 
     Returns:
         gpd.GeoDataFrame: geodataframe with OSM features
@@ -141,24 +138,24 @@ def extract_osm_data(bbox: tuple, tags: list, overpass_url: str, delay: int = 5)
         tag_string = ''.join([f'["{k}"="{v}"]' for tag in tags for k, v in [tag.split('=')]])
 
         query = f"""
-        [out:json][timeout:180];
+        [out:json][timeout:300];
+        area["name"="Portugal"]["admin_level"="2"]->.portugal;
         (
-          node{tag_string}({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
-          way{tag_string}({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        node{tag_string}(area.portugal);
+        way{tag_string}(area.portugal);
         );
         out center;
         """
-
-        for attempt in range(5):
+        for attempt in range(attempts):
             try:
                 response = requests.post(overpass_url, data={'data': query}, timeout=300)
                 response.raise_for_status()
                 data = response.json()
                 break
             except Exception as e:
-                if attempt < 4:
+                if attempt < attempts:
                     wait = delay * (attempt + 1)
-                    info(f"Overpass timeout (attempt {attempt+1}/5), retrying in {wait}s...")
+                    info(f"Overpass timeout (attempt {attempt+1}/{attempts}), retrying in {wait}s...")
                     time.sleep(wait)
                 else:
                     raise e

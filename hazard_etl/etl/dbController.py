@@ -1,4 +1,4 @@
-from .logs import die
+from .logs import die, info
 import sqlalchemy as sql
 import pandas as pd
 
@@ -11,6 +11,10 @@ class DBController:
         self.username = username
         self.password = password
         self.uri = f"postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}"
+        self.engine = sql.create_engine(
+            self.uri,
+            connect_args={"client_encoding": "utf8"}
+        )
 
     def select_data(self, query: str) -> pd.DataFrame:
         """This functions abstracts the `SELECT` queries
@@ -22,8 +26,7 @@ class DBController:
             pd.DataFrame: the selection
         """
         try:
-            con = sql.create_engine(self.uri)
-            df = pd.read_sql(query, con)
+            df = pd.read_sql(query, self.engine)
         except Exception as e:
             die(f"select_data: {e}")
         return df
@@ -38,8 +41,7 @@ class DBController:
             chunksize (int): the number of rows to insert at the time
         """
         try:
-            engine = sql.create_engine(self.uri)
-            with engine.connect() as con:
+            with self.engine.connect() as con:
                 tran = con.begin()
                 df.to_sql(
                     name=table, schema=schema,
@@ -63,11 +65,7 @@ class DBController:
             chunksize (int): number of rows to insert at a time
         """
         try:
-            engine = sql.create_engine(
-                self.uri,
-                connect_args={"client_encoding": "utf8"}  # ADD THIS
-            )
-            with engine.connect() as con:
+            with self.engine.connect() as con:
                 tran = con.begin()
                 for i in range(0, len(gdf), chunksize):
                     chunk = gdf.iloc[i:i + chunksize]
@@ -87,3 +85,19 @@ class DBController:
             if 'tran' in locals():
                 tran.rollback()
             die(f"insert_geodata: {e}")
+
+    def truncate_tables(self, tables: list) -> None:
+        """Truncates the given tables and restarts their identity sequences.
+
+        Args:
+            tables (list): list of table names to truncate
+        """
+        try:
+            with self.engine.connect() as con:
+                tran = con.begin()
+                for table in tables:
+                    con.execute(sql.text(f"TRUNCATE TABLE public.{table} RESTART IDENTITY CASCADE"))
+                    info(f"Truncated {table}")
+                tran.commit()
+        except Exception as e:
+            die(f"truncate_tables: {e}")

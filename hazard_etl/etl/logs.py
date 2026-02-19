@@ -53,19 +53,6 @@ def info(msg: str) -> None:
     logger.info(f"[>>] {msg}")
 
 
-def done(msg: str) -> None:
-    """Prints success message and exits
-    
-    Args:
-        msg (str): the success message
-    """
-    logger = _get_logger()
-    logger.info("\n" + "=" * 60)
-    logger.info(f"[OK] {msg}")
-    logger.info("=" * 60 + "\n")
-    sys.exit(0)
-
-
 def progress_bar(current: int, total: int, prefix: str = '', width: int = 40) -> None:
     """Displays a progress bar
     

@@ -12,7 +12,7 @@ osm:
   # For testing use Lisboa only (faster):
   bbox: [38.69, -9.23, 38.80, -9.09]
   # Full Portugal Continental:
-  # bbox: [36.95, -9.5, 42.15, -6.19]
+  bbox: [36.95, -9.5, 42.15, -6.19]
 
   # facility_type maps directly to facility.facility_type column
   facility_tags:
@@ -24,7 +24,7 @@ osm:
       clinics: ["amenity=clinic"]
       pharmacies: ["amenity=pharmacy"]
     shelter:
-      schoosl: ["amenity=school"]
+      schools: ["amenity=school"]
       universities: ["amenity=university"]
       community_centres: ["amenity=community_centre"]
       sports_centres: ["leisure=sports_centre"]
