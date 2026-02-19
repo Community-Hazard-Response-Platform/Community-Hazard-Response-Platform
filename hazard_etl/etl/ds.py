@@ -92,31 +92,35 @@ def download_data(url: str, fname: str) -> None:
 
 
 def read_gpkg(fname: str, layer: str = None) -> gpd.GeoDataFrame:
-    """Reads a GeoPackage into a GeoDataFrame
+    """Reads a GeoPackage or GeoJSON into a GeoDataFrame
 
     Args:
-        fname (str): the name of the GeoPackage file
-        layer (str): the layer name to read
+        fname (str): the name of the file
+        layer (str): the layer name to read (for GeoPackage files)
 
     Returns:
         gpd.GeoDataFrame: the geodataframe
     """
     try:
-        gdf = gpd.read_file(fname, layer=layer)
+        gdf = gpd.read_file(fname, layer=layer, encoding='utf-8')
+    except UnicodeDecodeError:
+        gdf = gpd.read_file(fname, layer=layer, encoding='latin-1')
     except Exception as e:
         die(f"read_gpkg: {e}")
     return gdf
 
 
 def write_geojson(gdf: gpd.GeoDataFrame, fname: str) -> None:
-    """Writes a GeoDataFrame to GeoJSON
+    """Writes a GeoDataFrame to GeoJSON ensuring UTF-8 encoding.
 
     Args:
         gdf (gpd.GeoDataFrame): the geodataframe
         fname (str): the file name
     """
     try:
-        gdf.to_file(fname, driver='GeoJSON')
+        geojson_str = gdf.to_json(ensure_ascii=False)
+        with open(fname, 'w', encoding='utf-8') as f:
+            f.write(geojson_str)
     except Exception as e:
         die(f"write_geojson: {e}")
 
@@ -145,16 +149,16 @@ def extract_osm_data(bbox: tuple, tags: list, overpass_url: str, delay: int = 5)
         out center;
         """
 
-        for attempt in range(3):
+        for attempt in range(5):
             try:
-                response = requests.post(overpass_url, data={'data': query}, timeout=180)
+                response = requests.post(overpass_url, data={'data': query}, timeout=300)
                 response.raise_for_status()
                 data = response.json()
                 break
             except Exception as e:
-                if attempt < 2:
+                if attempt < 4:
                     wait = delay * (attempt + 1)
-                    info(f"Overpass timeout, retrying in {wait}s...")
+                    info(f"Overpass timeout (attempt {attempt+1}/5), retrying in {wait}s...")
                     time.sleep(wait)
                 else:
                     raise e
@@ -193,110 +197,5 @@ def extract_osm_data(bbox: tuple, tags: list, overpass_url: str, delay: int = 5)
         time.sleep(delay)
         return gdf
 
-    except Exception as e:
-        die(f"extract_osm_data: {e}")
-
-
-
-def read_gpkg(fname: str, layer: str = None) -> gpd.GeoDataFrame:
-    """Reads a GeoPackage into a GeoDataFrame
-
-    Args:
-        fname (str): the name of the GeoPackage file
-        layer (str): the layer name to read
-
-    Returns:
-        gpd.GeoDataFrame: the geodataframe
-    """
-    try:
-        gdf = gpd.read_file(fname, layer=layer)
-    except Exception as e:
-        die(f"read_gpkg: {e}")
-    return gdf
-
-
-def write_geojson(gdf: gpd.GeoDataFrame, fname: str) -> None:
-    """Writes a GeoDataFrame to GeoJSON
-
-    Args:
-        gdf (gpd.GeoDataFrame): the geodataframe
-        fname (str): the file name
-    """
-    try:
-        gdf.to_file(fname, driver='GeoJSON')
-    except Exception as e:
-        die(f"write_geojson: {e}")
-
-
-def extract_osm_data(bbox: tuple, tags: list, overpass_url: str, delay: int = 5) -> gpd.GeoDataFrame:
-    """Extracts data from OpenStreetMap using Overpass API
-
-    Args:
-        bbox (tuple): bounding box (min_lat, min_lon, max_lat, max_lon)
-        tags (list): list of OSM tags like ['amenity=hospital']
-        overpass_url (str): Overpass API endpoint
-        delay (int): delay between requests in seconds
-
-    Returns:
-        gpd.GeoDataFrame: geodataframe with OSM features
-    """
-    try:
-        tag_string = ''.join([f'["{k}"="{v}"]' for tag in tags for k, v in [tag.split('=')]])
-        
-        query = f"""
-        [out:json][timeout:180];
-        (
-          node{tag_string}({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
-          way{tag_string}({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
-        );
-        out center;
-        """
-        
-        for attempt in range(3):
-            try:
-                response = requests.post(overpass_url, data={'data': query}, timeout=180)
-                response.raise_for_status()
-                data = response.json()
-                break
-            except Exception as e:
-                if attempt < 2:
-                    time.sleep(delay * (attempt + 1))
-                else:
-                    raise e
-        
-        if not data or 'elements' not in data:
-            return None
-        
-        features = []
-        for elem in data['elements']:
-            if elem['type'] == 'node':
-                lon, lat = elem['lon'], elem['lat']
-            elif 'center' in elem:
-                lon, lat = elem['center']['lon'], elem['center']['lat']
-            else:
-                continue
-            
-            tags_dict = elem.get('tags', {})
-            features.append({
-                'osm_id': elem['id'],
-                'name': tags_dict.get('name', ''),
-                'lon': lon,
-                'lat': lat,
-                'tags': json.dumps(tags_dict)
-            })
-        
-        if not features:
-            return None
-        
-        gdf = gpd.GeoDataFrame(
-            features,
-            geometry=gpd.points_from_xy([f['lon'] for f in features], 
-                                        [f['lat'] for f in features]),
-            crs='EPSG:4326'
-        )
-        
-        time.sleep(delay)
-        return gdf
-        
     except Exception as e:
         die(f"extract_osm_data: {e}")

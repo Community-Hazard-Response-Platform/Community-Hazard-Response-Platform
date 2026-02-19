@@ -74,6 +74,10 @@ def transformation(config: dict) -> None:
     """
     e.section("TRANSFORMATION")
     
+    # Always re-run transformation to ensure processed files are up to date
+    processed = Path(PROCESSED_DIR)
+    processed.mkdir(parents=True, exist_ok=True)
+    
     # Transform CAOP to administrative_area table schema
     e.info("READING CAOP DATA")
     gpkg_file = list(Path(DOWNLOAD_DIR).glob("*.gpkg"))[0]
@@ -125,53 +129,31 @@ def load(config: dict, chunksize: int = 1000) -> None:
     """
     try:
         e.section("LOAD")
-        
-        from sqlalchemy import create_engine, text
-        from urllib.parse import quote_plus
-        password = quote_plus(config["database"]["password"])
-        user = quote_plus(config["database"]["username"])
-        uri = f"postgresql+psycopg2://{user}:{password}@{config['database']['host']}:{config['database']['port']}/{config['database']['database']}"
-        engine = create_engine(uri)
+
+        db = e.DBController(
+            host=config["database"]["host"],
+            port=config["database"]["port"],
+            database=config["database"]["database"],
+            username=config["database"]["username"],
+            password=config["database"]["password"]
+        )
 
         # Load administrative areas
         e.info("READING ADMINISTRATIVE AREAS")
         admin_areas = e.read_gpkg(f"{PROCESSED_DIR}/administrative_area.geojson")
-        total_areas = len(admin_areas)
+        e.info(f"Loaded {len(admin_areas)} administrative areas")
 
         e.info("INSERTING ADMINISTRATIVE AREAS INTO DATABASE")
-        with engine.connect() as conn:
-            for idx, (_, row) in enumerate(admin_areas.iterrows(), 1):
-                e.progress_bar(idx, total_areas, "Inserting administrative areas")
-                conn.execute(text("""
-                    INSERT INTO public.administrative_area (name_area, admin_level, geom)
-                    VALUES (:name, :level, ST_GeomFromText(:wkt, 3857))
-                """), {
-                    "name": row["name_area"],
-                    "level": int(row["admin_level"]),
-                    "wkt": row["geometry"].wkt
-                })
-            conn.commit()
+        db.insert_geodata(admin_areas, schema=DB_SCHEMA, table=TABLE_ADMIN_AREAS, srid=3857, chunksize=chunksize)
         e.info("ADMINISTRATIVE AREAS INSERTED")
 
         # Load facilities
         e.info("READING FACILITIES")
         facilities = e.read_gpkg(f"{PROCESSED_DIR}/facility.geojson")
-        total_facilities = len(facilities)
+        e.info(f"Loaded {len(facilities)} facilities")
 
         e.info("INSERTING FACILITIES INTO DATABASE")
-        with engine.connect() as conn:
-            for idx, (_, row) in enumerate(facilities.iterrows(), 1):
-                e.progress_bar(idx, total_facilities, "Inserting facilities")
-                conn.execute(text("""
-                    INSERT INTO public.facility (osm_id, name_fac, facility_type, geom)
-                    VALUES (:osm_id, :name, :ftype, ST_GeomFromText(:wkt, 3857))
-                """), {
-                    "osm_id": int(row["osm_id"]),
-                    "name": row["name_fac"],
-                    "ftype": row["facility_type"],
-                    "wkt": row["geometry"].wkt
-                })
-            conn.commit()
+        db.insert_geodata(facilities, schema=DB_SCHEMA, table=TABLE_FACILITIES, srid=3857, chunksize=chunksize)
         e.info("FACILITIES INSERTED")
 
         e.done("LOAD COMPLETED SUCCESSFULLY")
@@ -218,11 +200,11 @@ def main(config_file: str) -> None:
     """
     config = e.read_config(config_file)
     
-    msg = time_this_function(extraction, config=config)
-    e.info(msg)
+    # msg = time_this_function(extraction, config=config)
+    # e.info(msg)
     
-    msg = time_this_function(transformation, config=config)
-    e.info(msg)
+    # msg = time_this_function(transformation, config=config)
+    # e.info(msg)
     
     msg = time_this_function(load, config=config, chunksize=1000)
     e.info(msg)

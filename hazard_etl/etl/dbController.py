@@ -51,3 +51,39 @@ class DBController:
             if 'tran' in locals():
                 tran.rollback()
             die(f"{e}")
+
+    def insert_geodata(self, gdf, schema: str, table: str, srid: int = 3857, chunksize: int = 100) -> None:
+        """Inserts a GeoDataFrame into a PostGIS table using WKT geometry conversion.
+
+        Args:
+            gdf (gpd.GeoDataFrame): geodataframe to insert
+            schema (str): the name of the schema
+            table (str): the name of the table
+            srid (int): the SRID/CRS of the geometry
+            chunksize (int): number of rows to insert at a time
+        """
+        try:
+            engine = sql.create_engine(
+                self.uri,
+                connect_args={"client_encoding": "utf8"}  # ADD THIS
+            )
+            with engine.connect() as con:
+                tran = con.begin()
+                for i in range(0, len(gdf), chunksize):
+                    chunk = gdf.iloc[i:i + chunksize]
+                    for _, row in chunk.iterrows():
+                        cols = [c for c in gdf.columns if c not in ('geometry', 'id')]
+                        col_str = ', '.join(cols) + ', geom'
+                        placeholders = ', '.join([f':{c}' for c in cols])
+                        query = sql.text(f"""
+                            INSERT INTO {schema}.{table} ({col_str})
+                            VALUES ({placeholders}, ST_GeomFromText(:wkt, {srid}))
+                        """)
+                        params = {c: row[c] for c in cols}
+                        params['wkt'] = row['geometry'].wkt
+                        con.execute(query, params)
+                tran.commit()
+        except Exception as e:
+            if 'tran' in locals():
+                tran.rollback()
+            die(f"insert_geodata: {e}")
