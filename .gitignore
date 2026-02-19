@@ -205,6 +205,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-data/*
-!data/original/.gitkeep
-!data/processed/.gitkeep
+hazard_etl/data/*
+!hazard_etl/data/original/.gitkeep
+!hazard_etl/data/processed/.gitkeep
