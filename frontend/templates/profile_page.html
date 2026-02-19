@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/images/logo_light.png" type="image/png">
+</head>
+<body>
+
+<div class="card">
+    <a href="/dashboard" class="back-arrow">←</a>
+
+    <div class="avatar">
+        <div class="avatar-circle"></div>
+        <div class="avatar-body"></div>
+    </div>
+
+    <h2>User Profile</h2>
+
+    <form id="profileForm" class="form">
+
+        <input 
+            type="text" 
+            name="username" 
+            id="username"
+            placeholder="Username" 
+            class="input-field"
+            required
+        >
+
+        <input 
+            type="email" 
+            name="email" 
+            id="email"
+            placeholder="Email" 
+            class="input-field"
+            required
+        >
+
+        <input 
+            type="text" 
+            name="firstname" 
+            id="firstname"
+            placeholder="First Name" 
+            class="input-field"
+            required
+        >
+
+        <input 
+            type="text" 
+            name="surname" 
+            id="surname"
+            placeholder="Surname" 
+            class="input-field"
+            required
+        >
+
+        <input 
+            type="tel" 
+            name="phone" 
+            id="phone"
+            placeholder="Phone Number" 
+            class="input-field"
+        >
+
+        {% if success %}
+        <div class="success-message" id="successMsg">{{ success }}</div>
+        {% endif %}
+
+        <div class="button-row">
+            <button type="button" class="btn-primary" id="saveBtn">Save Changes</button>
+            <button type="button" class="btn-secondary" id="deleteBtn">Delete Account</button>
+        </div>
+
+    </form>
+</div>
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", () => {
+        fetch("/profile")
+            .then(res => res.json())
+            .then(user => {
+                document.getElementById("username").value = user.username;
+                document.getElementById("email").value = user.email;
+                document.getElementById("firstname").value = user.firstname;
+                document.getElementById("surname").value = user.surname;
+                document.getElementById("phone").value = user.phone || "";
+            });
+    });
+
+    const saveBtn = document.getElementById("saveBtn");
+    const deleteBtn = document.getElementById("deleteBtn");
+    const profileForm = document.getElementById("profileForm");
+
+    saveBtn.addEventListener("click", () => {
+        const formData = new FormData(profileForm);
+
+        fetch("/update-profile", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                let msg = document.getElementById("successMsg");
+                if (!msg) {
+                    msg = document.createElement("div");
+                    msg.id = "successMsg";
+                    msg.className = "success-message";
+                    profileForm.insertBefore(msg, profileForm.firstChild);
+                }
+                msg.textContent = "Profile updated successfully!";
+                msg.style.display = "block";
+
+                setTimeout(() => msg.style.display = "none", 3000);
+            }
+        })
+        .catch(err => console.error("Error updating profile:", err));
+    });
+
+    deleteBtn.addEventListener("click", () => {
+        const confirmed = confirm("Are you sure you want to delete your account? This action cannot be undone.");
+        if (confirmed) {
+            fetch("/delete-account", { method: "POST" })
+                .then(res => {
+                    if (res.ok) {
+                        alert("Your account has been deleted.");
+                        window.location.href = "/"; // redirect to home/login
+                    }
+                })
+                .catch(err => console.error("Error deleting account:", err));
+        }
+    });
+</script>
+
+</body>
+</html>

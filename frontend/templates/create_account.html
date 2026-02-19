@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Account</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/images/logo_light.png" type="image/png">
+</head>
+<body>
+
+    <div class="card">
+        <a href="/" class="back-arrow">←</a>
+
+        <div class="avatar">
+            <div class="avatar-circle"></div>
+            <div class="avatar-body"></div>
+        </div>
+
+        <h2>Create Account</h2>
+
+        <form action="/create-account" method="POST" class="form">
+
+            <input 
+                type="text" 
+                name="username" 
+                placeholder="Username" 
+                class="input-field"
+                required
+            >
+
+            <input 
+                type="email" 
+                name="email" 
+                placeholder="Email" 
+                class="input-field"
+                required
+            >
+
+            <input 
+                type="text" 
+                name="firstname" 
+                placeholder="First Name" 
+                class="input-field"
+                required
+            >
+
+            <input 
+                type="text" 
+                name="surname" 
+                placeholder="Surname" 
+                class="input-field"
+                required
+            >
+
+            <input 
+                type="tel" 
+                name="phone" 
+                placeholder="Phone Number" 
+                class="input-field"
+            >
+            
+            <input 
+                type="password" 
+                name="password" 
+                id="password"
+                placeholder="Password" 
+                class="input-field"
+                required
+            >
+
+            <!-- Password rules -->
+            <ul class="requirements" id="requirements" style="display: none;">
+                <li id="length">At least 8 characters</li>
+                <li id="uppercase">At least 1 uppercase letter</li>
+                <li id="lowercase">At least 1 lowercase letter</li>
+                <li id="number">At least 1 number</li>
+
+            </ul>
+
+
+            {% if error %}
+            <div class="error-message">{{ error }}</div>
+            {% endif %}
+
+            {% if success %}
+            <div class="success-message">{{ success }}</div>
+            {% endif %}
+
+            <button type="submit" class="btn-primary">
+                Create Account
+            </button> 
+
+            <div class="secondary-buttons">
+                <button type="button" class="btn-secondary" onclick="window.location.href='/'">
+                    Back to Login
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+
+<script>
+    // dynamic comprobation
+    const password = document.getElementById("password");
+    const confirm = document.getElementById("confirm_password");
+    const requirements = document.getElementById("requirements");
+
+    const lengthReq = document.getElementById("length");
+    const uppercaseReq = document.getElementById("uppercase");
+    const lowercaseReq = document.getElementById("lowercase");
+    const numberReq = document.getElementById("number");
+
+    function validatePassword() {
+        const val = password.value;
+
+        // to not show the list of rules 
+        if (val.length === 0 ) {
+            requirements.style.display = "none";
+            return;
+        }
+
+        // when start writing, show the rules
+        requirements.style.display = "block";
+
+        if (val.length >= 8) lengthReq.classList.add("valid");
+        else lengthReq.classList.remove("valid");
+
+        if (/[A-Z]/.test(val)) uppercaseReq.classList.add("valid");
+        else uppercaseReq.classList.remove("valid");
+
+        if (/[a-z]/.test(val)) lowercaseReq.classList.add("valid");
+        else lowercaseReq.classList.remove("valid");
+
+        if (/\d/.test(val)) numberReq.classList.add("valid");
+        else numberReq.classList.remove("valid");
+
+
+    }
+
+    password.addEventListener("input", validatePassword);
+</script>
+
+
+</body>
+</html>
