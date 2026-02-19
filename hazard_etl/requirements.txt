@@ -1,5 +1,0 @@
-requests
-geopandas
-PyYAML
-SQLAlchemy
-psycopg2-binary
