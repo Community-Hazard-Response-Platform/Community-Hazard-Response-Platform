@@ -35,6 +35,7 @@ CREATE TABLE app_user (
     surname VARCHAR(50) NOT NULL,
     phone VARCHAR(20),
     is_verified BOOLEAN DEFAULT FALSE,
+    verification_token TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -100,6 +101,7 @@ CREATE TABLE need (
 CREATE TABLE offer (
     offer_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
+    title VARCHAR(255) NOT NULL,
     descrip TEXT NOT NULL,
     category INTEGER NOT NULL,
     geom GEOMETRY(Point, 3857),
@@ -131,7 +133,7 @@ CREATE TABLE assignments (
 -- Administrative Areas (from OSM)
 CREATE TABLE administrative_area (
     area_id SERIAL PRIMARY KEY,
-    name_area VARCHAR(100) NOT NULL,
+    name_area VARCHAR(255) NOT NULL,
     admin_level INTEGER NOT NULL,
     geom GEOMETRY(Polygon, 3857) NOT NULL
 );

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<link rel="icon" href="/static/images/logo_light.png" type="image/png">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<!-- MarkerCluster -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Toggle sidebar button -->
+<button id="btn-toggle" class="btn-primary toggle-btn">
+    <span class="line"></span>
+    <span class="line"></span>
+    <span class="line"></span>
+</button>
+
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-buttons">
+        <div class="button-row">
+            <button class="btn-primary">My Needs</button>
+            <button class="btn-primary btn-add" id="add-need-btn">+</button>
+        </div>
+
+        <div class="button-row">
+            <button class="btn-primary">My Offers</button>
+            <button class="btn-primary btn-add" id="add-offer-btn">+</button>
+        </div>
+
+        <button class="btn-primary">My Assignments</button>
+    </div>
+        
+
+
+    <div id="user-profile-link" style="cursor:pointer;" class="user-panel">
+        <div class="dashboard-avatar">
+            <div class="avatar-circle"></div>
+            <div class="avatar-body"></div>
+        </div>
+        <div class="user-info">
+            <span class="username" id="username-display">{{ username }}</span>
+        </div>
+    </div>
+    <button class="btn-logout">Logout</button>
+
+
+</div>
+
+
+
+<!-- Search bar -->
+<div class="search-bar">
+    <select id="filterSelect">
+        <option value="needs">Needs</option>
+        <option value="offers">Offers</option>
+        <option value="facility">Facilities</option>
+        <option value="all">All</option>
+    </select>
+
+    <select id="facilitySelect">
+    </select>
+
+    <input type="text" id="searchInput" placeholder="Search by administrative area...">
+    <button id="searchBtn">Search</button>
+</div>
+
+
+
+
+<script>
+// Start the map
+var map = L.map('map', { zoomControl: false }).setView([38.7169, -9.1395], 13); // Lisboa
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+L.control.zoom({
+    position: 'bottomright'  
+}).addTo(map);
+
+// Arrays for the markers
+let needMarkers = [];
+let offerMarkers = [];
+let facilityMarkers = [];
+
+
+// Icons for needs and offers
+var needIcon = L.icon({
+    iconUrl: '/static/images/pin-red.png',
+    iconSize: [30, 40],
+    iconAnchor: [15, 40],
+    popupAnchor: [0, -35]
+});
+
+var offerIcon = L.icon({
+    iconUrl: '/static/images/pin-green.png',
+    iconSize: [30, 40],
+    iconAnchor: [15, 40],
+    popupAnchor: [0, -35]
+});
+
+var facilityIcon = L.icon({
+    iconUrl: '/static/images/pin-blue.png',
+    iconSize: [30, 40],
+    iconAnchor: [15, 40],
+    popupAnchor: [0, -35]
+});
+
+function mercatorToLatLng(x, y) {
+    const R = 6378137; 
+    const lng = x / R * (180 / Math.PI);
+    const lat = (2 * Math.atan(Math.exp(y / R)) - Math.PI / 2) * (180 / Math.PI);
+    return [lat, lng];
+}
+
+
+// Toggle sidebar
+const sidebar = document.querySelector(".sidebar");
+const toggleBtn = document.getElementById("btn-toggle");
+
+toggleBtn.addEventListener("click", () => {
+    sidebar.classList.toggle("open");
+    toggleBtn.classList.toggle("sidebar-open"); 
+
+});
+
+
+// search funtion
+function applySearch() {
+    const query = document.getElementById("searchInput").value;
+    const filter = document.getElementById("filterSelect").value;
+    const selectedFacilities = Array.from(facilitySelect.selectedOptions).map(opt => opt.value);
+
+    // Construir query string
+    const params = new URLSearchParams();
+    params.append("query", query);
+    params.append("type", filter);
+    selectedFacilities.forEach(f => params.append("facilityTypes", f));
+
+    fetch("/search?" + params.toString())
+        .then(res => res.json())
+        .then(data => {
+            // Limpiar markers previos
+            needMarkers.forEach(m => map.removeLayer(m));
+            offerMarkers.forEach(m => map.removeLayer(m));
+            facilityMarkers.forEach(m => map.removeLayer(m));
+
+            needMarkers = [];
+            offerMarkers = [];
+            facilityMarkers = [];
+
+            // Crear nuevos markers según resultados
+            data.needs.forEach(n => {
+                const geo = n.geom.coordinates;
+                const m = L.marker([geo[1], geo[0]], {icon: needIcon})
+                          .bindPopup(`<b>${n.title}</b><br>${n.descrip}`)
+                          .addTo(map);
+                needMarkers.push(m);
+            });
+
+            data.offers.forEach(o => {
+                const geo = o.geom.coordinates;
+                const m = L.marker([geo[1], geo[0]], {icon: offerIcon})
+                          .bindPopup(`<b>${o.title || 'Offer'}</b><br>${o.descrip}`)
+                          .addTo(map);
+                offerMarkers.push(m);
+            });
+
+            data.facility.forEach(f => {
+                const geo = f.geom.coordinates;
+                const m = L.marker([geo[1], geo[0]], {icon: facilityIcon})
+                          .bindPopup(`<b>${f.name}</b><br>${f.facility_type}`)
+                          .addTo(map);
+                facilityMarkers.push(m);
+            });
+        });
+}
+
+
+// to bring the facilities
+const facilitySelect = document.getElementById("facilitySelect");
+
+fetch("/facility-types")
+    .then(res => res.json())
+    .then(types => {
+        facilitySelect.innerHTML = "";
+
+        const allOption = document.createElement("option");
+        allOption.value = "all";
+        allOption.text = "All Facilities";
+        allOption.selected = true;
+        facilitySelect.appendChild(allOption);
+
+        types.forEach(type => {
+            const option = document.createElement("option");
+            option.value = type;
+            option.text = type.charAt(0).toUpperCase() + type.slice(1);
+            facilitySelect.appendChild(option);
+        });
+    });
+
+    // to show markers of needs
+    fetch('/needs').then(res => res.json()).then(data => {
+        data.features.forEach(f => {
+            const [lat, lng] = mercatorToLatLng(f.geometry.coordinates[0], f.geometry.coordinates[1]);
+            const m = L.marker([lat, lng], {icon: needIcon})
+                        .bindPopup(`<b>${f.properties.title}</b><br>${f.properties.descrip}`)
+                        .addTo(map);
+            m.on('mouseover', function(e) {
+                this.openPopup();
+            });
+            m.on('mouseout', function(e) {
+                this.closePopup();
+            });
+
+            needMarkers.push(m);
+        });
+    });
+
+    // to show markers of offers
+    fetch('/offers').then(res => res.json()).then(data => {
+        data.features.forEach(f => {
+            const [lat, lng] = mercatorToLatLng(f.geometry.coordinates[0], f.geometry.coordinates[1]);
+            const m = L.marker([lat, lng], {icon: offerIcon})
+                        .bindPopup(`<b>${f.properties.title}</b><br>${f.properties.descrip}`)
+                        .addTo(map);
+            m.on('mouseover', function(e) {
+                this.openPopup();
+            });
+            m.on('mouseout', function(e) {
+                this.closePopup();
+            });
+
+            offerMarkers.push(m);
+        });
+    });
+
+    // to show markers of facilities
+    fetch('/facilities').then(res => res.json()).then(data => {
+        data.features.forEach(f => {
+            const [lat, lng] = mercatorToLatLng(f.geometry.coordinates[0], f.geometry.coordinates[1]);
+            const m = L.marker([lat, lng], {icon: facilityIcon})
+                        .bindPopup(`<b>${f.properties.name_fac}</b><br>${f.properties.facility_type}`)
+                        .addTo(map);
+
+            m.on('mouseover', function(e) {
+                this.openPopup();
+            });
+            m.on('mouseout', function(e) {
+                this.closePopup();
+            });
+
+            facilityMarkers.push(m);
+        });
+    });
+
+    const logoutBtn = document.querySelector(".btn-logout");
+
+    logoutBtn.addEventListener("click", () => {
+        // Show confirmation popup
+        const confirmLogout = confirm("Are you sure you want to log out?");
+        
+        if (confirmLogout) {
+            // User confirmed, call the /logout endpoint
+            fetch("/logout")
+                .then(() => {
+                    window.location.href = "/"; // Redirect to login or home page
+                })
+                .catch(err => console.error("Logout error:", err));
+        } else {
+            // User cancelled, do nothing
+            console.log("Logout cancelled");
+        }
+    });
+
+    document.getElementById("user-profile-link").addEventListener("click", function() {
+        window.location.href = "/profile-page";
+    });
+
+    document.getElementById("add-offer-btn").addEventListener("click", function() {
+        window.location.href = "/create-offer";
+    });
+
+    document.getElementById("add-need-btn").addEventListener("click", function() {
+        window.location.href = "/create-need";
+    });
+
+</script>
+
+</body>
+</html>

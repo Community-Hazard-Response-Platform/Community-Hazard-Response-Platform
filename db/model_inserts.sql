@@ -96,69 +96,44 @@ INSERT INTO facility (osm_id, name_fac, facility_type, geom) VALUES
 (910000019,'Ambulance Base','ambulance_station',     ST_GeomFromText('POINT(  9000  5000)',3857)),
 (910000020,'Emergency Post','emergency_service',     ST_GeomFromText('POINT( -9000 -9000)',3857));
 
-INSERT INTO need (user_id, title, descrip, category, urgency, geom, address_point) VALUES
-( 1,'Need medication today','Out of medication; urgent pickup needed.',            2,(SELECT urgency_id FROM urgency_domain WHERE code='critical'), ST_GeomFromText('POINT(  4500  3200)',3857),'Address N01'),
-( 2,'Grocery delivery','Need groceries delivered for the next two days.',          1,(SELECT urgency_id FROM urgency_domain WHERE code='high'),     ST_GeomFromText('POINT(  1200  -800)',3857),'Address N02'),
-( 3,'Ride to appointment','Need transport to a clinic tomorrow morning.',          3,(SELECT urgency_id FROM urgency_domain WHERE code='medium'),   ST_GeomFromText('POINT( -3000  1800)',3857),'Address N03'),
-( 4,'Help with forms','Need help filling online forms.',                           15,(SELECT urgency_id FROM urgency_domain WHERE code='low'),     ST_GeomFromText('POINT( 26000  1000)',3857),'Address N04'),
-( 5,'Temporary shelter','Need a safe place to stay tonight.',                      5,(SELECT urgency_id FROM urgency_domain WHERE code='critical'), ST_GeomFromText('POINT(-15000 -5000)',3857),'Address N05'),
-( 6,'Pet food','Need cat food for one week.',                                      6,(SELECT urgency_id FROM urgency_domain WHERE code='medium'),   ST_GeomFromText('POINT(  8000 -2000)',3857),'Address N06'),
-( 7,'Warm clothing','Need a winter coat and shoes.',                               7,(SELECT urgency_id FROM urgency_domain WHERE code='high'),     ST_GeomFromText('POINT( -9000  5000)',3857),'Address N07'),
-( 8,'Hygiene kit','Need hygiene supplies (soap, shampoo, diapers).',               8,(SELECT urgency_id FROM urgency_domain WHERE code='medium'),   ST_GeomFromText('POINT(  2000  9000)',3857),'Address N08'),
-( 9,'Childcare support','Need 2 hours of childcare for an emergency.',             9,(SELECT urgency_id FROM urgency_domain WHERE code='high'),     ST_GeomFromText('POINT( 11000  2500)',3857),'Address N09'),
-(10,'Eldercare check-in','Need someone to check in on an elderly neighbor.',       10,(SELECT urgency_id FROM urgency_domain WHERE code='low'),     ST_GeomFromText('POINT(  6000 12000)',3857),'Address N10'),
-(11,'Small home repair','Broken door lock needs quick fix.',                       11,(SELECT urgency_id FROM urgency_domain WHERE code='high'),    ST_GeomFromText('POINT( 17000 -3000)',3857),'Address N11'),
-(12,'Translation help','Need translation for a medical call.',                     12,(SELECT urgency_id FROM urgency_domain WHERE code='medium'),  ST_GeomFromText('POINT( -7000 -6000)',3857),'Address N12'),
-(13,'Legal signposting','Need help understanding a letter.',                       13,(SELECT urgency_id FROM urgency_domain WHERE code='low'),     ST_GeomFromText('POINT(  3000 -12000)',3857),'Address N13'),
-(14,'Tutoring','Need math tutoring for a student.',                                14,(SELECT urgency_id FROM urgency_domain WHERE code='low'),     ST_GeomFromText('POINT( -2000  7000)',3857),'Address N14'),
-(15,'Mental health support','Need someone to talk to today.',                      16,(SELECT urgency_id FROM urgency_domain WHERE code='high'),    ST_GeomFromText('POINT(  9000  1000)',3857),'Address N15'),
-(16,'Donation pickup','Need help picking up donated items.',                       17,(SELECT urgency_id FROM urgency_domain WHERE code='medium'),  ST_GeomFromText('POINT( 21000  8000)',3857),'Address N16'),
-(17,'Moving essentials','Need help packing and moving boxes.',                      18,(SELECT urgency_id FROM urgency_domain WHERE code='medium'),  ST_GeomFromText('POINT( 24000 -6000)',3857),'Address N17'),
-(18,'Safety escort','Need escort walking home late.',                               19,(SELECT urgency_id FROM urgency_domain WHERE code='high'),    ST_GeomFromText('POINT( -5000  2000)',3857),'Address N18'),
-(19,'Misc urgent request','Need miscellaneous help urgently.',                      20,(SELECT urgency_id FROM urgency_domain WHERE code='critical'),ST_GeomFromText('POINT( -12000 11000)',3857),'Address N19'),
-(20,'Food and water','Need food and drinking water for today.',                     1,(SELECT urgency_id FROM urgency_domain WHERE code='critical'),ST_GeomFromText('POINT( 14000 -9000)',3857),'Address N20');
+INSERT INTO need (user_id, title, descrip, category, urgency, geom, address_point, status_id)
+VALUES
+(1,'Need medication today','Out of medication; urgent pickup needed.', 2,
+ (SELECT urgency_id FROM urgency_domain WHERE code='critical'),
+ ST_GeomFromText('POINT(-1028000 4868000)', 3857),'Baixa, Lisboa',1),
+(2,'Grocery delivery','Need groceries delivered for the next two days.', 1,
+ (SELECT urgency_id FROM urgency_domain WHERE code='high'),
+ ST_GeomFromText('POINT(-1028500 4868200)', 3857),'Chiado, Lisboa',1),
+(3,'Ride to appointment','Need transport to a clinic tomorrow morning.', 3,
+ (SELECT urgency_id FROM urgency_domain WHERE code='medium'),
+ ST_GeomFromText('POINT(-1029000 4868500)', 3857),'Avenida da Liberdade, Lisboa',1),
+(4,'Help with forms','Need help filling online forms.', 15,
+ (SELECT urgency_id FROM urgency_domain WHERE code='low'),
+ ST_GeomFromText('POINT(-1028700 4867900)', 3857),'Bairro Alto, Lisboa',1),
+(5,'Temporary shelter','Need a safe place to stay tonight.', 5,
+ (SELECT urgency_id FROM urgency_domain WHERE code='critical'),
+ ST_GeomFromText('POINT(-1029500 4868300)', 3857),'Alfama, Lisboa',1);
 
-INSERT INTO offer (user_id, descrip, category, geom) VALUES
-( 1,'Can deliver groceries within 2 hours.',                 1, ST_GeomFromText('POINT(  1500  -500)',3857)),
-( 2,'Can drive to appointments (weekday mornings).',         3, ST_GeomFromText('POINT( -2500  1600)',3857)),
-( 3,'Can pick up prescriptions from pharmacies.',            2, ST_GeomFromText('POINT(  5200  2800)',3857)),
-( 4,'Can provide friendly phone check-ins this week.',       4, NULL),
-( 5,'Can host someone for one night (emergency).',           5, ST_GeomFromText('POINT(-14000 -4500)',3857)),
-( 6,'Can help with pet transport to the vet.',               6, ST_GeomFromText('POINT(  7800 -2100)',3857)),
-( 7,'Can donate warm clothes (sizes M/L).',                  7, ST_GeomFromText('POINT( -8000  5200)',3857)),
-( 8,'Can assemble hygiene kits and deliver.',                8, ST_GeomFromText('POINT(  2200  8800)',3857)),
-( 9,'Can provide short childcare support (2h).',             9, ST_GeomFromText('POINT( 11500  2600)',3857)),
-(10,'Can do elder visits and small errands.',               10, ST_GeomFromText('POINT(  6500 11800)',3857)),
-(11,'Can do small home repairs (basic tools).',             11, ST_GeomFromText('POINT( 17500 -2800)',3857)),
-(12,'Can help translate PT/EN on calls.',                   12, ST_GeomFromText('POINT( -7200 -5900)',3857)),
-(13,'Can help read letters and explain options.',           13, ST_GeomFromText('POINT(  2800 -11800)',3857)),
-(14,'Can tutor math for 1 hour sessions.',                  14, ST_GeomFromText('POINT( -2500  6800)',3857)),
-(15,'Can offer listening support and signposting.',         16, ST_GeomFromText('POINT(  8800  1200)',3857)),
-(16,'Can help coordinate donation pickup/drop-off.',        17, ST_GeomFromText('POINT( 20500  7800)',3857)),
-(17,'Can help pack boxes and move light items.',            18, ST_GeomFromText('POINT( 23500 -6100)',3857)),
-(18,'Can escort someone for safety (evening).',             19, ST_GeomFromText('POINT( -5200  2100)',3857)),
-(19,'Can deliver water and basic supplies.',                 1, ST_GeomFromText('POINT( 13800 -9200)',3857)),
-(20,'Can do tech help: phones, accounts, online forms.',    15, ST_GeomFromText('POINT( 26000   900)',3857));
+INSERT INTO offer (user_id, title, descrip, category, geom, address_point, status_id)
+VALUES
+(1, 'Grocery Delivery', 'Can deliver groceries within 2 hours.', 1,
+ ST_GeomFromText('POINT(-1028000 4868000)', 3857),'Baixa, Lisboa',1),
+(2, 'Transport Assistance', 'Can drive to appointments (weekday mornings).', 2,
+ ST_GeomFromText('POINT(-1028300 4868200)', 3857),'Chiado, Lisboa',1),
+(3, 'Prescription Pickup', 'Can pick up prescriptions from pharmacies.', 3,
+ ST_GeomFromText('POINT(-1029000 4868500)', 3857),'Avenida da Liberdade, Lisboa',1),
+(4, 'Friendly Call Check-ins', 'Can provide friendly phone check-ins this week.', 4,
+ ST_GeomFromText('POINT(-1028800 4867900)', 3857),'Bairro Alto, Lisboa',1),
+(5, 'Emergency Shelter', 'Can host someone for one night (emergency).', 5,
+ ST_GeomFromText('POINT(-1029600 4868300)', 3857),'Alfama, Lisboa',1);
 
+INSERT INTO assignments (need_id, offer_id, status_ass, notes)
+VALUES
+(1, 3,'accepted','Prescription pickup coordinated.'),
+(2, 1,'proposed','Groceries list requested.'),
+(3, 2,'accepted','Ride scheduled for tomorrow morning.'),
+(4, 5,'proposed','Will help with online form submission.'),
+(5, 4,'accepted','Emergency accommodation offered.');
 
-INSERT INTO assignments (need_id, offer_id, status_ass, notes) VALUES
-( 1,  3,'accepted',  'Prescription pickup coordinated.'),
-( 2,  1,'proposed',  'Groceries list requested.'),
-( 3,  2,'accepted',  'Ride scheduled for tomorrow morning.'),
-( 4, 20,'proposed',  'Will help with online form submission.'),
-( 5,  5,'accepted',  'Emergency accommodation offered.'),
-( 6,  6,'proposed',  'Vet transport time to be confirmed.'),
-( 7,  7,'accepted',  'Clothes drop-off arranged.'),
-( 8,  8,'proposed',  'Hygiene kit delivery window pending.'),
-( 9,  9,'accepted',  'Childcare agreed for 2 hours.'),
-(10, 10,'proposed',  'Check-in scheduled for afternoon.'),
-(11, 11,'accepted',  'Repair visit scheduled.'),
-(12, 12,'proposed',  'Call translation time pending.'),
-(13, 13,'accepted',  'Letter review appointment set.'),
-(14, 14,'proposed',  'Tutoring session planned.'),
-(15, 15,'accepted',  'Support call scheduled today.'),
-(16, 16,'proposed',  'Donation pickup route planning.'),
-(17, 17,'accepted',  'Packing help arranged.'),
-(18, 18,'proposed',  'Escort details');
 
 COMMIT;

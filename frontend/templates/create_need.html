@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Need</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/images/logo_light.png" type="image/png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+
+<div class="card card--wide">
+    <a href="/dashboard" class="back-arrow">←</a>
+
+    <h2>Create New Need</h2>
+
+    <form id="needForm" class="form">
+
+        <input 
+            type="text" 
+            name="title" 
+            id="title"
+            placeholder="Need Title" 
+            class="input-field"
+            required
+        >
+
+        <textarea 
+            name="description" 
+            id="description"
+            placeholder="Description"
+            class="input-field"
+            required
+        ></textarea>
+
+        <input 
+            type="text" 
+            name="address_point" 
+            id="address_point"
+            placeholder="Address (optional)" 
+            class="input-field"
+        />
+
+        <select id="category" class="input-field" required>
+            <option value="">Select Category</option>
+        </select>
+
+        <select id="urgency" class="input-field" required>
+            <option value="">Select Urgency</option>
+        </select>
+
+        <div id="map" style="height: 400px; border-radius: 12px; margin-bottom: 15px;"></div>
+
+        <div class="button-row">
+            <button type="button" class="btn-primary" id="createNeedBtn">
+                Create Need
+            </button>
+        </div>
+
+    </form>
+
+</div>
+
+<script>
+
+    document.getElementById("createNeedBtn").addEventListener("click", () => {
+
+        const title = document.getElementById("title").value;
+        const description = document.getElementById("description").value;
+        const category = document.getElementById("category").value;
+        const urgency = document.getElementById("urgency").value;
+        const address_point = document.getElementById("address_point").value || null;
+
+        if (!marker) {
+            alert("Please select a location on the map!");
+            return;
+        }
+
+        const lat = marker.getLatLng().lat;
+        const lng = marker.getLatLng().lng;
+
+        fetch("/needs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user_id: null,  // we add from the backend, api.py
+                title,
+                descrip: description,
+                category: parseInt(category),
+                urgency: parseInt(urgency),
+                latitude: lat,
+                longitude: lng,
+                address_point: address_point
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.message) {
+                alert("Need created!");
+                window.location.href = "/dashboard";
+            } else if (data.error) {
+                alert("Error: " + data.error);
+            }
+        })
+        .catch(err => console.error(err));
+    });
+
+
+    const needIcon = L.icon({
+        iconUrl: "/static/images/pin-red.png",
+        iconSize: [50, 50],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+    });
+
+    var map = L.map('map', { zoomControl: false })
+        .setView([38.7169, -9.1395], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let marker;
+
+    map.on('click', function(e) {
+
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+
+        if (marker) {
+            map.removeLayer(marker);
+        }
+
+        marker = L.marker([lat, lng], { icon: needIcon }).addTo(map);
+    });
+
+
+    // load the categories, same as in create_offer
+    document.addEventListener("DOMContentLoaded", () => {
+
+        fetch("/categories")
+            .then(res => res.json())
+            .then(categories => {
+                const select = document.getElementById("category");
+                categories.forEach(cat => {
+                    const option = document.createElement("option");
+                    option.value = cat.id;
+                    option.textContent = cat.name_cat;
+                    select.appendChild(option);
+                });
+            });
+
+        // Load urgency levels
+        fetch("/urgency-levels")
+            .then(res => res.json())
+            .then(levels => {
+                const select = document.getElementById("urgency");
+                levels.forEach(level => {
+                    const option = document.createElement("option");
+                    option.value = level.urgency_id;
+                    option.textContent = level.name;
+                    select.appendChild(option);
+                });
+            });
+
+    });
+
+</script>
+
+</body>
+</html>
