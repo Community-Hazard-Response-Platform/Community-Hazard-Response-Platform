@@ -9,7 +9,7 @@ hazard_etl/
 ├── main.py                  # Entry point — orchestrates the full ETL pipeline
 ├── requirements.txt         # Python dependencies
 ├── config/
-│   └── config..example.yml  # Configuration file (database, OSM settings)
+│   └── config.example.yml  # Configuration file (database, OSM settings)
 ├── data/
 │   ├── original/            # Raw downloaded data (CAOP .gpkg, OSM GeoJSON)
 │   └── processed/           # Transformed data ready for loading

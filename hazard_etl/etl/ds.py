@@ -121,7 +121,7 @@ def extract_osm_data(tags: list, overpass_url: str, delay: int = 5, attempts: in
                 data = response.json()
                 break
             except Exception as e:
-                if attempt < attempts:
+                if attempt < attempts -1:
                     wait = delay * (attempt + 1)
                     info(f"Overpass timeout (attempt {attempt+1}/{attempts}), retrying in {wait}s...")
                     time.sleep(wait)
