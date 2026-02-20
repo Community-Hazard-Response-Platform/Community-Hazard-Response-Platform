@@ -7,14 +7,22 @@ import os
 import bcrypt
 import secrets
 import smtplib
+import yaml
 from email.message import EmailMessage
 
+def load_config(path="../config/config.yml"):
+    with open(path) as f:
+        return yaml.safe_load(f)
+
+config = load_config()
+db_cfg = config["database"]
+
 DB_CONFIG = {
-    "database": "solidarity_db",
-    "user": "postgres",
-    "password": "belen2003",
-    "host": "localhost",
-    "port": "5432"
+    "database": db_cfg["database"],
+    "user":     db_cfg["username"],
+    "password": db_cfg["password"],
+    "host":     db_cfg["host"],
+    "port":     db_cfg["port"]
 }
 
 db_pool = SimpleConnectionPool(
@@ -142,17 +150,16 @@ def send_verification_email(email, token):
 
     msg = EmailMessage()
     msg["Subject"] = "Verify your account"
-    msg["From"] = "jd0communityhazard@gmail.com"
+    msg["From"] = config["email"]["address"]
     msg["To"] = email
     msg.set_content(f"Click to verify your account:\n{link}")
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(
-            "jd0communityhazard@gmail.com",
-            "mosxagtvaaomipzm"
+            config["email"]["address"],
+            config["email"]["password"]
         )
         smtp.send_message(msg)
-
 
 
 @app.route("/verify/<token>")

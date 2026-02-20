@@ -8,6 +8,11 @@ database:
   username: "your_username"
   password: "your_password"
 
+# Email credentials
+email:
+  address: "your_email@gmail.com"
+  password: "your_app_password"
+  
 # CAOP Administrative Boundaries
 caop:
   url: "https://geo2.dgterritorio.gov.pt/caop/CAOP_Continente_2024_1-gpkg.zip"
