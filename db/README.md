@@ -32,7 +32,7 @@ psql -U postgres -d hazard_response_db -f model.sql
 
 ![Database schema diagram](../docs/Community_Hazard_Response_Platform-2026-02-19_19-06.png)
 
-The database contains 8 tables divided into three groups:
+The database contains 9 tables divided into four groups:
 
 ### User Data
 - **app_user** — registered users of the platform (residents, volunteers, emergency services)
