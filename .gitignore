@@ -205,6 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Data ignores
 hazard_etl/data/*
 !hazard_etl/data/original/.gitkeep
 !hazard_etl/data/processed/.gitkeep
+hazard_etl/config/config.yml
+.DS_Store

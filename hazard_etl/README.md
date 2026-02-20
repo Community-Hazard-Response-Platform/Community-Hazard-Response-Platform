@@ -6,19 +6,19 @@ ETL (Extract, Transform, Load) module for the Community Hazard Response Platform
 
 ```
 hazard_etl/
-├── main.py           # Entry point — orchestrates the full ETL pipeline
-├── requirements.txt  # Python dependencies
+├── main.py                  # Entry point — orchestrates the full ETL pipeline
+├── requirements.txt         # Python dependencies
 ├── config/
-│   └── config.yml    # Configuration file (database, OSM settings)
+│   └── config.example.yml  # Configuration file (database, OSM settings)
 ├── data/
-│   ├── original/     # Raw downloaded data (CAOP .gpkg, OSM GeoJSON)
-│   └── processed/    # Transformed data ready for loading
+│   ├── original/            # Raw downloaded data (CAOP .gpkg, OSM GeoJSON)
+│   └── processed/           # Transformed data ready for loading
 └── etl/
-    ├── __init__.py       # Package exports
-    ├── config.py         # Configuration file reader
-    ├── dbController.py   # Database connection and query abstraction
-    ├── ds.py             # Data extraction and transformation 
-    └── logs.py           # Logging and progress utilities
+    ├── __init__.py          # Package exports
+    ├── config.py            # Configuration file reader
+    ├── dbController.py      # Database connection and query abstraction
+    ├── ds.py                # Data extraction and transformation 
+    └── logs.py              # Logging and progress utilities
 ```
 
 ## Dependencies
@@ -32,26 +32,15 @@ conda activate hazard_etl
 
 ## Configuration
 
-Create a `config/config.yml` file with the following structure:
+Copy `config/config.example.yml` to `config/config.yml` and fill in your database credentials before running the ETL.
 
 ```yaml
 database:
-  host: localhost
-  port: 5432
-  database: hazard_response_db
-  username: postgres
-  password: your_password
-
-osm:
-  overpass_url: "https://overpass.kumi.systems/api/interpreter"
-  facility_tags:
-    emergency:
-      hospital:
-        - "amenity=hospital"
-      fire_station:
-        - "amenity=fire_station"
-      police:
-        - "amenity=police"
+  host: "localhost"
+  port: "5432"
+  database: "your_database_name"
+  username: "your_username"
+  password: "your_password"
 ```
 
 ## Usage
