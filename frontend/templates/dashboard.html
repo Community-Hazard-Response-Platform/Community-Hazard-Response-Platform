@@ -83,9 +83,16 @@
 
 
 
+<body data-user-id="{{ user_id }}">
 
 
 <script>
+
+const CURRENT_USER_ID = parseInt(document.body.dataset.userId);
+
+
+
+
 // Start the map
 var map = L.map('map', { zoomControl: false }).setView([38.7169, -9.1395], 13); // Lisboa
 
@@ -146,6 +153,81 @@ function mercatorToLatLng(x, y) {
     return [lat, lng];
 }
 
+function acceptItem(type, itemId) {
+    const confirmAccept = confirm(`Are you sure you want to accept this ${type}?`);
+    if (!confirmAccept) return;
+
+    let payload = {};
+    if (type === "need") payload.need_id = itemId;
+    if (type === "offer") payload.offer_id = itemId;
+
+    fetch("/assignments", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Server error");
+        return res.json();
+    })
+    .then(() => {
+        window.location.reload(); // simple y limpio
+    })
+    .catch(err => {
+        console.error(err);
+        alert("There was a problem accepting this item.");
+    });
+}
+
+
+function addInteractiveMarker(item, type) {
+
+    const geomObj = typeof item.geom === "string" ? JSON.parse(item.geom) : item.geom;
+    const [x, y] = geomObj.coordinates;
+    const [lat, lng] = mercatorToLatLng(x, y);
+
+
+    const icon = type === 'need' ? needIcon : offerIcon;
+
+    const marker = L.marker([lat, lng], { icon }).addTo(map);
+
+    const itemId = item.id;  
+
+    const isOwner = item.user_id === CURRENT_USER_ID;
+
+    let popupHTML = `
+        <b>${item.title}</b><br>
+        ${item.descrip}<br><br>
+    `;
+
+    if (isOwner) {
+        const editUrl = type === "need" 
+            ? `/edit-need/${item.id}` 
+            : `/edit-offer/${item.id}`;
+
+        popupHTML += `<button class="btn-primary" onclick="window.location='${editUrl}'">
+                Update
+            </button>`;
+    } else {
+        popupHTML += `
+            <button class="btn-primary"
+                onclick="acceptItem('${type}', ${itemId})">
+                Accept
+            </button>
+        `;
+    }
+
+    marker.bindPopup(popupHTML, {
+        closeButton: true
+    });
+
+    marker.on("mouseover", function () {
+        this.openPopup();
+    });
+
+    if (type === 'need') needMarkers.push(marker);
+    if (type === 'offer') offerMarkers.push(marker);
+}
 
 // Toggle sidebar
 const sidebar = document.querySelector(".sidebar");
@@ -181,28 +263,23 @@ function applySearch() {
 
             // Dibujar markers filtrados
             data.needs.forEach(n => {
-                if (n.geom) {
-                    const geomObj = JSON.parse(n.geom);
-                    const [x, y] = geomObj.coordinates;
-                    const [lat, lng] = mercatorToLatLng(x, y);
-                    const m = L.marker([lat, lng], {icon: needIcon})
-                                .bindPopup(`<b>${n.title}</b><br>${n.descrip}`)
-                                .addTo(map);
-                    needMarkers.push(m);
-                }
+                addInteractiveMarker({
+                    id: n.need_id,
+                    title: n.title,
+                    descrip: n.descrip,
+                    user_id: n.user_id,
+                    geom: n.geom
+                }, 'need');
             });
 
-
             data.offers.forEach(o => {
-                if (o.geom) {
-                    const geomObj = JSON.parse(o.geom);
-                    const [x, y] = geomObj.coordinates;
-                    const [lat, lng] = mercatorToLatLng(x, y);
-                    const m = L.marker([lat, lng], {icon: offerIcon})
-                                .bindPopup(`<b>${o.title}</b><br>${o.descrip}`)
-                                .addTo(map);
-                    offerMarkers.push(m);
-                }
+                addInteractiveMarker({
+                    id: o.offer_id,
+                    title: o.title,
+                    descrip: o.descrip,
+                    user_id: o.user_id,
+                    geom: o.geom
+                }, 'offer');
             });
 
             data.facility.forEach(f => {
@@ -254,39 +331,28 @@ fetch("/facility-types")
 
     // to show markers of needs
     fetch('/needs').then(res => res.json()).then(data => {
-        data.features.forEach(f => {
-            const [lat, lng] = mercatorToLatLng(f.geometry.coordinates[0], f.geometry.coordinates[1]);
-            const m = L.marker([lat, lng], {icon: needIcon})
-                        .bindPopup(`<b>${f.properties.title}</b><br>${f.properties.descrip}`)
-                        .addTo(map);
-            m.on('mouseover', function(e) {
-                this.openPopup();
-            });
-            m.on('mouseout', function(e) {
-                this.closePopup();
-            });
-
-            needMarkers.push(m);
-        });
+        data.features.forEach(f => addInteractiveMarker({
+            id: f.properties.need_id,
+            title: f.properties.title,
+            descrip: f.properties.descrip,
+            user_id: f.properties.user_id,
+            geom: f.geometry
+        }, 'need'));
     });
+
 
     // to show markers of offers
     fetch('/offers').then(res => res.json()).then(data => {
-        data.features.forEach(f => {
-            const [lat, lng] = mercatorToLatLng(f.geometry.coordinates[0], f.geometry.coordinates[1]);
-            const m = L.marker([lat, lng], {icon: offerIcon})
-                        .bindPopup(`<b>${f.properties.title}</b><br>${f.properties.descrip}`)
-                        .addTo(map);
-            m.on('mouseover', function(e) {
-                this.openPopup();
-            });
-            m.on('mouseout', function(e) {
-                this.closePopup();
-            });
-
-            offerMarkers.push(m);
-        });
+        data.features.forEach(f => addInteractiveMarker({
+            id: f.properties.offer_id,
+            title: f.properties.title,
+            descrip: f.properties.descrip,
+            user_id: f.properties.user_id,
+            geom: f.geometry
+        }, 'offer'));
     });
+
+
 
     // to show markers of facilities
     fetch('/facilities').then(res => res.json()).then(data => {
@@ -295,14 +361,6 @@ fetch("/facility-types")
             const m = L.circleMarker([lat, lng], facilityIcon)
                         .bindPopup(`<b>${f.properties.name_fac}</b><br>${f.properties.facility_type}`)
                         .addTo(map);
-
-            m.on('mouseover', function(e) {
-                this.openPopup();
-            });
-            m.on('mouseout', function(e) {
-                this.closePopup();
-            });
-
             facilityMarkers.push(m);
         });
     });
@@ -402,14 +460,13 @@ searchInput.addEventListener("keypress", (e) => {
 });
 
 function showUserItems(type) {
-    // Limpiar todos los markers primero
+    // Limpiar todos los markers
     [...needMarkers, ...offerMarkers, ...facilityMarkers, ...assignmentMarkers].forEach(m => map.removeLayer(m));
     needMarkers = [];
     offerMarkers = [];
     facilityMarkers = [];
     assignmentMarkers = [];
 
-    // Elegir endpoint según el tipo
     let url = '';
     if (type === 'needs') url = '/my-needs';
     if (type === 'offers') url = '/my-offers';
@@ -418,55 +475,47 @@ function showUserItems(type) {
     fetch(url)
         .then(res => res.json())
         .then(data => {
+            data.features.forEach(item => {
+                // solo needs y offers van con addInteractiveMarker
+                if(type === 'needs' || type === 'offers') {
+                    addInteractiveMarker({
+                        id: item.id,
+                        title: item.title,
+                        descrip: item.descrip,
+                        user_id: item.user_id,
+                        geom: item.geom
+                    }, type.slice(0, -1)); // 'needs' -> 'need', 'offers' -> 'offer'
+                }else if(type === 'assignments') {
 
-            if (type === 'needs') {
-                data.features.forEach(n => {
-                    const geomObj = typeof n.geom === "string" ? JSON.parse(n.geom) : n.geom;
+                    const geomObj = typeof item.geom === "string" ? JSON.parse(item.geom) : item.geom;
                     const [x, y] = geomObj.coordinates;
                     const [lat, lng] = mercatorToLatLng(x, y);
 
-                    const m = L.marker([lat, lng], {icon: needIcon})
-                                .bindPopup(`<b>${n.title}</b><br>${n.descrip}`)
-                                .addTo(map);
+                    const m = L.marker([lat, lng], { icon: assignmentIcon }).addTo(map);
 
-                    needMarkers.push(m);
-                });
-            }
+                    m.bindPopup(`
+                        <b>${item.title}</b><br>
+                        ${item.descrip}
+                    `, {
+                        closeButton: true
+                    });
 
-            if (type === 'offers') {
-                data.features.forEach(o => {
-                    const geomObj = typeof o.geom === "string" ? JSON.parse(o.geom) : o.geom;
-                    const [x, y] = geomObj.coordinates;
-                    const [lat, lng] = mercatorToLatLng(x, y);
+                    m.on("mouseover", function () {
+                        this.openPopup();
+                    });
 
-                    const m = L.marker([lat, lng], {icon: offerIcon})
-                                .bindPopup(`<b>${o.title}</b><br>${o.descrip}`)
-                                .addTo(map);
-
-                    offerMarkers.push(m);
-                });
-            }
-
-            if (type === 'assignments') {
-                data.features.forEach(a => {
-                    const geomObj = JSON.parse(a.geom);
-                    const [lng, lat] = geomObj.coordinates;
-                    const m = L.marker([lat, lng], {icon: assignmentIcon})
-                                .bindPopup(`<b>${a.title}</b><br>${a.descrip}`)
-                                .addTo(map);
                     assignmentMarkers.push(m);
-                });
-            }
+                }
+            });
 
-            // Ajustar mapa al área de resultados
             const allMarkers = [...needMarkers, ...offerMarkers, ...assignmentMarkers];
-            if (allMarkers.length > 0) {
-                const group = L.featureGroup(allMarkers);
-                map.fitBounds(group.getBounds().pad(0.2));
+            if(allMarkers.length > 0){
+                map.fitBounds(L.featureGroup(allMarkers).getBounds().pad(0.2));
             }
         })
-        .catch(err => console.error(`Error loading user ${type}:`, err));
+        .catch(err => console.error(err));
 }
+
 
 // Event listeners
 document.getElementById("btn-my-needs").addEventListener("click", () => {

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Edit Need</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<link rel="icon" href="../static/images/logo_light.png" type="image/png">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body data-need-id="{{ need_id }}">
+
+<div class="card card--wide">
+    <a href="/dashboard" class="back-arrow">←</a>
+
+    <h2>Update Need</h2>
+
+    <form id="needForm" class="form">
+
+        <input 
+            type="text" 
+            id="title"
+            class="input-field"
+            required
+        >
+
+        <textarea 
+            id="description"
+            class="input-field"
+            required
+        ></textarea>
+
+        <input 
+            type="text" 
+            id="address_point"
+            class="input-field"
+        />
+
+        <select id="category" class="input-field" required>
+            <option value="">Select Category</option>
+        </select>
+
+        <select id="urgency" class="input-field" required>
+            <option value="">Select Urgency</option>
+        </select>
+
+        <div id="map" style="height: 400px; border-radius: 12px; margin-bottom: 15px;"></div>
+
+        <div class="button-row">
+            <button type="button" class="btn-primary" id="updateNeedBtn">
+                Update Need
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<script>
+// Convierte coordenadas Web Mercator (EPSG:3857) a lat/lng
+function mercatorToLatLng(x, y) {
+    const R = 6378137;
+    const lng = x / R * (180 / Math.PI);
+    const lat = (2 * Math.atan(Math.exp(y / R)) - Math.PI / 2) * (180 / Math.PI);
+    return [lat, lng];
+}
+
+const NEED_ID = parseInt(document.body.dataset.needId);
+if (isNaN(NEED_ID)) console.error("Need ID is NaN!");
+
+const needIcon = L.icon({
+    iconUrl: "/static/images/pin-red.png",
+    iconSize: [50, 50],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
+});
+
+let map = L.map('map', { zoomControl: false }).setView([38.7169, -9.1395], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+let marker;
+
+// Cargar categorías y urgencias
+document.addEventListener("DOMContentLoaded", () => {
+
+    // Categorías
+    fetch("/categories")
+        .then(res => res.json())
+        .then(categories => {
+            const select = document.getElementById("category");
+            categories.forEach(cat => {
+                const option = document.createElement("option");
+                option.value = cat.id;
+                option.textContent = cat.name_cat;
+                select.appendChild(option);
+            });
+        });
+
+    // Urgencias
+    fetch("/urgency-levels")
+        .then(res => res.json())
+        .then(levels => {
+            const select = document.getElementById("urgency");
+            levels.forEach(level => {
+                const option = document.createElement("option");
+                option.value = level.urgency_id;
+                option.textContent = level.name;
+                select.appendChild(option);
+            });
+        });
+
+    // Traer datos del need
+    fetch(`/needs/${NEED_ID}`)
+        .then(res => res.json())
+        .then(feature => {
+
+            const props = feature.properties;
+
+            document.getElementById("title").value = props.title;
+            document.getElementById("description").value = props.descrip;
+            document.getElementById("address_point").value = props.address_point || "";
+            document.getElementById("category").value = props.category || "";
+            document.getElementById("urgency").value = props.urgency || "";
+
+            // Geometría en EPSG:3857 → convertir a lat/lng
+            const geom = feature.geometry;
+            const [lat, lng] = mercatorToLatLng(...geom.coordinates);
+
+            // Crear marker
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lng], { icon: needIcon }).addTo(map);
+
+            // Centrar mapa
+            map.setView([lat, lng], 14);
+        })
+        .catch(err => console.error("Error loading need:", err));
+});
+
+// Permitir mover el marker al hacer click
+map.on('click', e => {
+    const { lat, lng } = e.latlng;
+    if (marker) map.removeLayer(marker);
+    marker = L.marker([lat, lng], { icon: needIcon }).addTo(map);
+});
+
+// Botón Update
+document.getElementById("updateNeedBtn").addEventListener("click", () => {
+
+    if (!marker) {
+        alert("Please select a location on the map!");
+        return;
+    }
+
+    const payload = {
+        title: document.getElementById("title").value,
+        descrip: document.getElementById("description").value,
+        category: parseInt(document.getElementById("category").value),
+        urgency: parseInt(document.getElementById("urgency").value),
+        geom: JSON.stringify({
+            type: "Point",
+            coordinates: [marker.getLatLng().lng, marker.getLatLng().lat]  // Leaflet lat/lng → GeoJSON [lng, lat]
+        }),
+        address_point: document.getElementById("address_point").value
+    };
+
+    fetch(`/edit-need/${NEED_ID}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Need updated!");
+            window.location.href = "/dashboard";
+        } else {
+            alert("Error updating need: " + (data.error || "Unknown error"));
+        }
+    })
+    .catch(err => console.error("Update error:", err));
+});
+</script>
+</body>
+</html>
