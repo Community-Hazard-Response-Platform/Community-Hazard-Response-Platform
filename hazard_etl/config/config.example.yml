@@ -1,5 +1,13 @@
 # Hazard Response Platform ETL Configuration
 
+# Database connection
+database:
+  host: "localhost"
+  port: "5432"
+  database: "your_database_name"
+  username: "your_username"
+  password: "your_password"
+
 # CAOP Administrative Boundaries
 caop:
   url: "https://geo2.dgterritorio.gov.pt/caop/CAOP_Continente_2024_1-gpkg.zip"
@@ -8,8 +16,6 @@ caop:
 # OpenStreetMap Facilities
 osm:
   overpass_url: "http://overpass-api.de/api/interpreter"
-
-  # facility_type maps directly to facility.facility_type column
   facility_tags:
     emergency:
       hospitals: ["amenity=hospital"]
@@ -23,11 +29,3 @@ osm:
       universities: ["amenity=university"]
       community_centres: ["amenity=community_centre"]
       sports_centres: ["leisure=sports_centre"]
-
-# Database connection
-database:
-  host: "localhost"
-  port: "5432"
-  database: "community_hazard_db"
-  username: "postgres"
-  password: "your_password"

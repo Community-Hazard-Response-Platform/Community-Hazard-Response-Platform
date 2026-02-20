@@ -208,3 +208,4 @@ __marimo__/
 hazard_etl/data/*
 !hazard_etl/data/original/.gitkeep
 !hazard_etl/data/processed/.gitkeep
+hazard_etl/config/config.yml

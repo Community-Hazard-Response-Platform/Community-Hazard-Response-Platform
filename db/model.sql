@@ -34,7 +34,7 @@ CREATE TABLE app_user (
     firstname VARCHAR(50) NOT NULL,
     surname VARCHAR(50) NOT NULL,
     phone VARCHAR(20),
-    is_verified BOOLEAN DEFAULT FALSE,
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     verification_token TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
