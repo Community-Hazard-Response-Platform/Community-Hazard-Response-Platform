@@ -3,7 +3,6 @@ import requests
 import geopandas as gpd
 import json
 import time
-from pathlib import Path
 from datetime import datetime
 
 
@@ -31,37 +30,6 @@ def get_latest_caop_url() -> tuple[str, str]:
         die("Could not find a valid CAOP version in the last 5 years")
     except Exception as e:
         die(f"get_latest_caop_url: {e}")
-
-
-def caop_already_downloaded(download_dir: str, version: str) -> bool:
-    """Checks if this CAOP version is already downloaded and extracted
-
-    Args:
-        download_dir (str): the directory where data is stored
-        version (str): the CAOP version name (e.g. 'CAOP_Continente_2024_1')
-
-    Returns:
-        bool: True if already downloaded
-    """
-    version_file = Path(download_dir) / f"{version}.version"
-    gpkg_files = list(Path(download_dir).glob("*.gpkg"))
-
-    if version_file.exists() and gpkg_files:
-        info(f"CAOP {version} already downloaded - skipping")
-        return True
-
-    return False
-
-
-def mark_caop_downloaded(download_dir: str, version: str) -> None:
-    """Writes a version marker file after successful download
-
-    Args:
-        download_dir (str): the directory where data is stored
-        version (str): the CAOP version name
-    """
-    version_file = Path(download_dir) / f"{version}.version"
-    version_file.write_text(f"Downloaded: {datetime.now().isoformat()}")
 
 
 def download_data(url: str, fname: str) -> None:

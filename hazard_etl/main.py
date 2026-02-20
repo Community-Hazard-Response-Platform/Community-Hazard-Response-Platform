@@ -23,21 +23,13 @@ def extraction(config: dict) -> None:
     # Check for latest CAOP version on DGT website
     e.info("CHECKING LATEST CAOP VERSION")
     caop_url, caop_version = e.get_latest_caop_url()
+    caop_fname = f"{DOWNLOAD_DIR}/caop.zip"
+    e.info(f"DOWNLOADING {caop_version}")
+    e.download_data(caop_url, caop_fname)
 
-    # Only download if this version isn't already local
-    if e.caop_already_downloaded(DOWNLOAD_DIR, caop_version):
-        e.info(f"{caop_version} already exists - skipping download")
-    else:
-        caop_fname = f"{DOWNLOAD_DIR}/caop.zip"
-        e.info(f"DOWNLOADING {caop_version}")
-        e.download_data(caop_url, caop_fname)
-
-        e.info("EXTRACTING CAOP ZIP")
-        with zipfile.ZipFile(caop_fname, 'r') as zip_ref:
-            zip_ref.extractall(DOWNLOAD_DIR)
-
-        # Mark this version as downloaded
-        e.mark_caop_downloaded(DOWNLOAD_DIR, caop_version)
+    e.info("EXTRACTING CAOP ZIP")
+    with zipfile.ZipFile(caop_fname, 'r') as zip_ref:
+        zip_ref.extractall(DOWNLOAD_DIR)
 
     e.info("CAOP COMPLETED")
 
