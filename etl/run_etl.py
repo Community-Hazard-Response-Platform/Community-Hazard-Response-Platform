@@ -1,4 +1,4 @@
-import etl as e
+import etl_module as e
 import argparse
 import zipfile
 from pathlib import Path
@@ -160,7 +160,7 @@ def parse_args() -> str:
     parser = argparse.ArgumentParser(description="Hazard Response Platform ETL")
     parser.add_argument("--config_file", required=False, 
                        help="The configuration file", 
-                       default="./config/config.yml")
+                       default="../config/config.yml")
     args = parser.parse_args()
     return args.config_file
 
