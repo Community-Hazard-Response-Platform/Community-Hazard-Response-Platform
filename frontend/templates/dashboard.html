@@ -169,90 +169,96 @@ function mercatorToLatLng(x, y) {
 }
 
 function acceptItem(type, itemId) {
-    const confirmAccept = confirm(`Are you sure you want to accept this ${type}?`);
-    if (!confirmAccept) return;
+    if (type !== "need") return;
 
-    let payload = {};
-    if (type === "need") payload.need_id = itemId;
-    if (type === "offer") payload.offer_id = itemId;
+    fetch(`/my-offers-for-need/${itemId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) { alert(data.error); return; }
+            if (data.offers.length === 0) {
+                alert("You have no active offer matching this need's category.");
+                return;
+            }
 
-    fetch("/assignments", {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-    })
-    .then(res => {
-        if (!res.ok) throw new Error("Server error");
-        return res.json();
-    })
-    .then(() => {
-        window.location.reload(); // simple y limpio
-    })
-    .catch(err => {
-        console.error(err);
-        alert("There was a problem accepting this item.");
-    });
+            let offerId;
+            if (data.offers.length === 1) {
+                offerId = data.offers[0].offer_id;
+            } else {
+                const options = data.offers.map(o => `${o.offer_id}: ${o.title}`).join("\n");
+                const input = prompt(`You have multiple matching offers. Enter the ID you want to use:\n${options}`);
+                offerId = parseInt(input);
+                if (!offerId) return;
+            }
+
+            const confirmAccept = confirm("Are you sure you want to accept this need?");
+            if (!confirmAccept) return;
+
+            fetch("/assignments", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ need_id: itemId, offer_id: offerId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) alert("Error: " + data.error);
+                else { alert("Assignment created!"); window.location.reload(); }
+            })
+            .catch(err => console.error(err));
+        });
 }
 
 
 function addInteractiveMarker(item, type) {
-
     const geomObj = typeof item.geom === "string" ? JSON.parse(item.geom) : item.geom;
     const [x, y] = geomObj.coordinates;
     const [lat, lng] = mercatorToLatLng(x, y);
 
+    const isAssigned = item.assignment_status !== null && item.assignment_status !== undefined;
 
-    const icon = type === 'need' ? needIcon : offerIcon;
+    // Use a different icon for assigned needs
+    let icon;
+    if (type === 'need') {
+        icon = isAssigned ? L.icon({
+            iconUrl: '/static/images/pin-blue.png',
+            iconSize: [30, 40],
+            iconAnchor: [15, 40],
+            popupAnchor: [0, -35]
+        }) : needIcon;
+    } else {
+        icon = offerIcon;
+    }
 
     const marker = L.marker([lat, lng], { icon }).addTo(map);
+    if (type === 'need') marker._needId = item.id;
 
-    const itemId = item.id;  
-
+    const itemId = item.id;
     const isOwner = item.user_id === CURRENT_USER_ID;
 
-    let popupHTML = `
-        <b>${item.title}</b><br>
-        ${item.descrip}<br><br>
-    `;
+    let popupHTML = `<b>${item.title}</b><br>${item.descrip}<br><br>`;
 
     if (isOwner) {
-        const editUrl = type === "need" 
-            ? `/edit-need/${item.id}` 
-            : `/edit-offer/${item.id}`;
-
-        popupHTML += `<button class="btn-primary" onclick="window.location='${editUrl}'">
-                Update
-            </button>`;
+        const editUrl = type === "need" ? `/edit-need/${item.id}` : `/edit-offer/${item.id}`;
+        popupHTML += `<button class="btn-primary" onclick="window.location='${editUrl}'">Update</button>`;
     } else {
-        popupHTML += `
-            <button class="btn-primary"
-                onclick="acceptItem('${type}', ${itemId})">
-                Accept
-            </button>
-        `;
         if (type === 'need') {
-            popupHTML += `
-                <button class="btn-primary"
-                    onclick="showNearestFacilities(${itemId}, '${item.category}')">
-                    Nearby Facilities
-                </button>
-            `;
+            if (isAssigned) {
+                popupHTML += `<span style="color:#888;font-style:italic;">Already assigned</span>`;
+            } else {
+                popupHTML += `
+                    <button class="btn-primary" onclick="acceptItem('${type}', ${itemId})">Accept</button>
+                    <button class="btn-primary" onclick="showNearestFacilities(${itemId}, '${item.category}')">Nearby Facilities</button>
+                `;
+            }
         }
     }
 
-    marker.bindPopup(popupHTML, {
-        closeButton: true
-    });
-
-    marker.on("mouseover", function () {
-        this.openPopup();
-    });
+    marker.bindPopup(popupHTML, { closeButton: true });
+    marker.on("mouseover", function () { this.openPopup(); });
 
     if (type === 'need') {
         marker.on('click', function() { showNearbyOffers(item.id); });
     }
 
-    if (type === 'need') marker._needId = item.id;
     if (type === 'need') needMarkers.push(marker);
     if (type === 'offer') offerMarkers.push(marker);
 }
@@ -366,7 +372,8 @@ fetch("/facility-types")
             descrip: f.properties.descrip,
             user_id: f.properties.user_id,
             category: f.properties.category,
-            geom: f.geometry
+            geom: f.geometry,
+            assignment_status: f.properties.assignment_status
         }, 'need'));
     });
 

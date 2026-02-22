@@ -439,17 +439,21 @@ def get_needs():
     try:
         cursor.execute("""
             SELECT n.need_id,
-                   n.title,
-                   n.descrip,
-                   n.address_point,
-                   s.code as status,
-                   u.code as urgency,
-                   c.name_cat as category,
-                   ST_AsGeoJSON(n.geom)::json as geom
+                n.title,
+                n.descrip,
+                n.address_point,
+                n.user_id,
+                s.code as status,
+                u.code as urgency,
+                c.name_cat as category,
+                ST_AsGeoJSON(n.geom)::json as geom,
+                a.status_ass as assignment_status
             FROM need n
             JOIN status_domain s ON n.status_id = s.status_id
             JOIN urgency_domain u ON n.urgency = u.urgency_id
             JOIN category c ON n.category = c.category_id
+            LEFT JOIN assignments a ON a.need_id = n.need_id
+                AND a.status_ass IN ('proposed', 'accepted')
         """)
         needs = cursor.fetchall()
     finally:
@@ -970,27 +974,55 @@ def my_offers():
 
 @app.route('/assignments', methods=['POST'])
 def create_assignment():
-    """Creates a new assignment linking a need to an offer.
-
-    JSON body: need_id, offer_id, notes (optional)
+    """Creates an assignment linking a need to an offer.
+    
+    If offer_id is provided in the body it uses that directly.
+    Otherwise it auto-matches the user's active offer by category.
 
     Returns:
         JSON with assignment_id, 201 on success
     """
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
     body = request.get_json()
+    need_id = body.get("need_id")
+    offer_id = body.get("offer_id")
+    user_id = session["user_id"]
+
     conn = get_db_connection()
     cursor = conn.cursor()
-
     try:
+        # If offer_id not provided, auto-find matching offer by category
+        if not offer_id:
+            cursor.execute("""
+                SELECT o.offer_id FROM offer o
+                JOIN need n ON n.need_id = %s
+                WHERE o.user_id = %s
+                  AND o.category = n.category
+                  AND o.status_id = (SELECT status_id FROM status_domain WHERE code = 'active')
+                LIMIT 1
+            """, (need_id, user_id))
+            offer = cursor.fetchone()
+            if not offer:
+                return jsonify({"error": "You have no active offer matching this need's category"}), 400
+            offer_id = offer["offer_id"]
+
+        # Check if need already has an active assignment
+        cursor.execute("""
+            SELECT assignment_id FROM assignments 
+            WHERE need_id = %s 
+            AND status_ass IN ('proposed', 'accepted')
+        """, (need_id,))
+        existing = cursor.fetchone()
+        if existing:
+            return jsonify({"error": "This need has already been assigned to a volunteer"}), 400
+
         cursor.execute("""
             INSERT INTO assignments (need_id, offer_id, notes)
             VALUES (%s, %s, %s)
             RETURNING assignment_id
-        """, (
-            body["need_id"],
-            body["offer_id"],
-            body.get("notes")
-        ))
+        """, (need_id, offer_id, body.get("notes")))
         assignment_id = cursor.fetchone()["assignment_id"]
         conn.commit()
     except Exception as e:
@@ -1064,6 +1096,38 @@ def complete_assignment(id):
         release_db_connection(conn)
 
     return jsonify({"message": f"Assignment {id} completed"})
+
+
+@app.route('/my-offers-for-need/<int:need_id>', methods=['GET'])
+def my_offers_for_need(need_id):
+    """Returns the current user's active offers that match a given need's category.
+
+    Args:
+        need_id (int): the need ID to match against
+
+    Returns:
+        JSON with list of matching offers
+    """
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT o.offer_id, o.title FROM offer o
+            JOIN need n ON n.need_id = %s
+            WHERE o.user_id = %s
+              AND o.category = n.category
+              AND o.status_id = (SELECT status_id FROM status_domain WHERE code = 'active')
+        """, (need_id, user_id))
+        offers = cursor.fetchall()
+    finally:
+        cursor.close()
+        release_db_connection(conn)
+
+    return jsonify({"offers": offers})
 
 
 # ─── FACILITIES ───────────────────────────────────────────────────────────────
