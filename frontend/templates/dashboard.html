@@ -225,6 +225,10 @@ function addInteractiveMarker(item, type) {
         this.openPopup();
     });
 
+    if (type === 'need') {
+        marker.on('click', function() { showNearbyOffers(item.id); });
+    }
+
     if (type === 'need') needMarkers.push(marker);
     if (type === 'offer') offerMarkers.push(marker);
 }
@@ -514,6 +518,52 @@ function showUserItems(type) {
             }
         })
         .catch(err => console.error(err));
+}
+
+let nearbyLayer = null;
+let radiusCircle = null;
+
+function showNearbyOffers(needId) {
+    if (nearbyLayer) map.removeLayer(nearbyLayer);
+    if (radiusCircle) map.removeLayer(radiusCircle);
+
+    fetch(`/needs/${needId}/nearby-offers?radius=2000`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.meta.need_geom) {
+                const [x, y] = data.meta.need_geom.coordinates;
+                const [lat, lng] = mercatorToLatLng(x, y);
+                radiusCircle = L.circle([lat, lng], {
+                    radius: data.meta.radius_m,
+                    color: '#e05c00',
+                    fillColor: '#e05c00',
+                    fillOpacity: 0.06,
+                    weight: 1.5,
+                    dashArray: '6,4'
+                }).addTo(map);
+            }
+
+            const layers = [];
+            data.features.forEach(f => {
+                const [x, y] = f.geometry.coordinates;
+                const [lat, lng] = mercatorToLatLng(x, y);
+                const isNearby = f.properties.proximity === 'nearby';
+                const circleStyle = isNearby
+                    ? { radius: 8, fillColor: '#00c853', color: '#00c853', weight: 2, fillOpacity: 0.95 }
+                    : { radius: 7, fillColor: '#80cbc4', color: '#80cbc4', weight: 1, fillOpacity: 0.45 };
+
+                const marker = L.circleMarker([lat, lng], circleStyle)
+                    .bindPopup(`
+                        <b>${f.properties.title}</b><br>
+                        ${f.properties.category}<br>
+                        <small>${Math.round(f.properties.distance_m)}m away</small>
+                    `);
+                layers.push(marker);
+            });
+
+            nearbyLayer = L.layerGroup(layers).addTo(map);
+        })
+        .catch(err => console.error('Nearby offers error:', err));
 }
 
 
