@@ -43,6 +43,9 @@
         </div>
 
         <button class="btn-primary" id="btn-my-assignments">My Assignments</button>
+        <button class="btn-primary" id="btn-uncovered">Uncovered Needs</button>
+        <button class="btn-primary" id="btn-facilities">Nearest Facilities</button>
+        <button class="btn-primary" id="btn-area-stats">Area Stats</button>
     </div>
         
 
@@ -137,14 +140,22 @@ var assignmentIcon = L.icon({
     popupAnchor: [0, -35]
 });
 
-var facilityIcon = {
-    radius: 3,                 
-    fillColor: "#0B3D91",     
-    color: "#0B3D91",         
-    weight: 1,
-    opacity: 1,
-    fillOpacity: 0.9
+const facilityStyles = {
+    emergency:  { radius: 6, fillColor: '#d32f2f', color: '#d32f2f', weight: 1, opacity: 1, fillOpacity: 0.9 },
+    healthcare: { radius: 6, fillColor: '#0288d1', color: '#0288d1', weight: 1, opacity: 1, fillOpacity: 0.9 },
+    shelter:    { radius: 6, fillColor: '#388e3c', color: '#388e3c', weight: 1, opacity: 1, fillOpacity: 0.9 }
 };
+
+const emergencyTypes  = ['hospitals', 'hospital', 'fire_stations', 'fire_station', 'police'];
+const healthcareTypes = ['clinics', 'clinic', 'pharmacies', 'pharmacy'];
+const shelterTypes    = ['schools', 'school', 'universities', 'university', 'community_centres', 'community_centre', 'sports_centres', 'sports_centre'];
+
+function getFacilityStyle(facilityType) {
+    if (emergencyTypes.includes(facilityType))  return facilityStyles.emergency;
+    if (healthcareTypes.includes(facilityType)) return facilityStyles.healthcare;
+    if (shelterTypes.includes(facilityType))    return facilityStyles.shelter;
+    return { radius: 5, fillColor: '#888', color: '#888', weight: 1, opacity: 1, fillOpacity: 0.9 };
+}
 
 function mercatorToLatLng(x, y) {
     const R = 6378137; 
@@ -215,6 +226,14 @@ function addInteractiveMarker(item, type) {
                 Accept
             </button>
         `;
+        if (type === 'need') {
+            popupHTML += `
+                <button class="btn-primary"
+                    onclick="showNearestFacilities(${itemId}, '${item.category}')">
+                    Nearby Facilities
+                </button>
+            `;
+        }
     }
 
     marker.bindPopup(popupHTML, {
@@ -229,6 +248,7 @@ function addInteractiveMarker(item, type) {
         marker.on('click', function() { showNearbyOffers(item.id); });
     }
 
+    if (type === 'need') marker._needId = item.id;
     if (type === 'need') needMarkers.push(marker);
     if (type === 'offer') offerMarkers.push(marker);
 }
@@ -272,6 +292,7 @@ function applySearch() {
                     title: n.title,
                     descrip: n.descrip,
                     user_id: n.user_id,
+                    category: n.category,
                     geom: n.geom
                 }, 'need');
             });
@@ -288,10 +309,10 @@ function applySearch() {
 
             data.facility.forEach(f => {
                 if (f.geom) {
-                    const geomObj = JSON.parse(f.geom); // Parsear string JSON
+                    const geomObj = typeof f.geom === 'string' ? JSON.parse(f.geom) : f.geom;
                     const [x, y] = geomObj.coordinates;
                     const [lat, lng] = mercatorToLatLng(x, y);
-                    const m = L.circleMarker([lat, lng], facilityIcon)
+                    const m = L.circleMarker([lat, lng], getFacilityStyle(f.facility_type))
                                 .bindPopup(`<b>${f.name_fac}</b><br>${f.facility_type}`)
                                 .addTo(map);
                     facilityMarkers.push(m);
@@ -340,6 +361,7 @@ fetch("/facility-types")
             title: f.properties.title,
             descrip: f.properties.descrip,
             user_id: f.properties.user_id,
+            category: f.properties.category,
             geom: f.geometry
         }, 'need'));
     });
@@ -362,7 +384,7 @@ fetch("/facility-types")
     fetch('/facilities').then(res => res.json()).then(data => {
         data.features.forEach(f => {
             const [lat, lng] = mercatorToLatLng(f.geometry.coordinates[0], f.geometry.coordinates[1]);
-            const m = L.circleMarker([lat, lng], facilityIcon)
+            const m = L.circleMarker([lat, lng], getFacilityStyle(f.properties.facility_type))
                         .bindPopup(`<b>${f.properties.name_fac}</b><br>${f.properties.facility_type}`)
                         .addTo(map);
             facilityMarkers.push(m);
@@ -527,30 +549,56 @@ function showNearbyOffers(needId) {
     if (nearbyLayer) map.removeLayer(nearbyLayer);
     if (radiusCircle) map.removeLayer(radiusCircle);
 
+    // Shrink all need markers except the clicked one
+    needMarkers.forEach(m => {
+        if (m._needId !== needId) {
+            m.setIcon(L.icon({
+                iconUrl: '/static/images/pin-red.png',
+                iconSize: [18, 24],
+                iconAnchor: [9, 24],
+                popupAnchor: [0, -20]
+            }));
+        }
+    });
+
+    // Shrink all offer markers
+    offerMarkers.forEach(m => m.setIcon(L.icon({
+        iconUrl: '/static/images/pin-green.png',
+        iconSize: [18, 24],
+        iconAnchor: [9, 24],
+        popupAnchor: [0, -20]
+    })));
+
     fetch(`/needs/${needId}/nearby-offers?radius=2000`)
         .then(res => res.json())
         .then(data => {
             if (data.meta.need_geom) {
                 const [x, y] = data.meta.need_geom.coordinates;
                 const [lat, lng] = mercatorToLatLng(x, y);
+
+                const hasNearby = data.meta.nearby_count > 0;
+
                 radiusCircle = L.circle([lat, lng], {
                     radius: data.meta.radius_m,
-                    color: '#e05c00',
-                    fillColor: '#e05c00',
-                    fillOpacity: 0.06,
-                    weight: 1.5,
+                    color: hasNearby ? '#e05c00' : '#d32f2f',
+                    fillColor: hasNearby ? '#e05c00' : '#d32f2f',
+                    fillOpacity: hasNearby ? 0.06 : 0.12,
+                    weight: hasNearby ? 1.5 : 2,
                     dashArray: '6,4'
                 }).addTo(map);
             }
 
             const layers = [];
-            data.features.forEach(f => {
+            data.features.forEach((f, index) => {
                 const [x, y] = f.geometry.coordinates;
                 const [lat, lng] = mercatorToLatLng(x, y);
                 const isNearby = f.properties.proximity === 'nearby';
-                const circleStyle = isNearby
-                    ? { radius: 8, fillColor: '#00c853', color: '#00c853', weight: 2, fillOpacity: 0.95 }
-                    : { radius: 7, fillColor: '#80cbc4', color: '#80cbc4', weight: 1, fillOpacity: 0.45 };
+                const isClosest = index === 0;
+                const circleStyle = isClosest
+        ? { radius: 14, fillColor: '#00c853', color: '#ffffff', weight: 2.5, fillOpacity: 1 }
+        : isNearby
+            ? { radius: 10, fillColor: '#00c853', color: '#00c853', weight: 2, fillOpacity: 0.95 }
+            : { radius: 7, fillColor: '#80cbc4', color: '#80cbc4', weight: 1, fillOpacity: 0.45 };
 
                 const marker = L.circleMarker([lat, lng], circleStyle)
                     .bindPopup(`
@@ -566,6 +614,117 @@ function showNearbyOffers(needId) {
         .catch(err => console.error('Nearby offers error:', err));
 }
 
+// Shows uncovered needs (no matching offer within 2km) in orange
+function showUncoveredNeeds() {
+    [...needMarkers, ...offerMarkers, ...facilityMarkers].forEach(m => map.removeLayer(m));
+    needMarkers = []; offerMarkers = []; facilityMarkers = [];
+
+    fetch('/needs/uncovered?radius=2000')
+        .then(res => res.json())
+        .then(data => {
+            data.features.forEach(f => {
+                const [x, y] = f.geometry.coordinates;
+                const [lat, lng] = mercatorToLatLng(x, y);
+                const m = L.circleMarker([lat, lng], {
+                    radius: 10,
+                    fillColor: '#ff6600',
+                    color: '#ff6600',
+                    weight: 2,
+                    fillOpacity: 0.9
+                }).bindPopup(`
+                    <b>${f.properties.title}</b><br>
+                    ${f.properties.category}<br>
+                    <span style="color:red"><b>Urgency: ${f.properties.urgency}</b></span><br>
+                    <small>No matching offer within 2km</small>
+                `).addTo(map);
+                needMarkers.push(m);
+            });
+
+            if (needMarkers.length > 0) {
+                map.fitBounds(L.featureGroup(needMarkers).getBounds().pad(0.3));
+            }
+            alert(`${data.meta.total_uncovered} uncovered needs found (${data.meta.critical_count} critical)`);
+        })
+        .catch(err => console.error('Uncovered needs error:', err));
+}
+
+// Clear radius and nearby markers when clicking on the map background
+map.on('click', function() {
+    if (nearbyLayer) {
+        map.removeLayer(nearbyLayer);
+        nearbyLayer = null;
+    }
+    if (radiusCircle) {
+        map.removeLayer(radiusCircle);
+        radiusCircle = null;
+    }
+    // Restore all markers to normal size
+    needMarkers.forEach(m => m.setIcon(needIcon));
+    offerMarkers.forEach(m => m.setIcon(offerIcon));
+});
+
+// Shows nearest facilities to a need when called from a marker popup
+function showNearestFacilities(needId, needCategory) {
+    if (nearbyLayer) map.removeLayer(nearbyLayer);
+
+    fetch(`/needs/${needId}/nearest-facilities?limit=5&need_category=${needCategory}`)
+        .then(res => res.json())
+        .then(data => {
+            const layers = [];
+            data.features.forEach(f => {
+                const [x, y] = f.geometry.coordinates;
+                const [lat, lng] = mercatorToLatLng(x, y);
+                const baseStyle = getFacilityStyle(f.properties.facility_type);
+                const marker = L.circleMarker([lat, lng], {
+                    radius: 11,
+                    fillColor: baseStyle.fillColor,
+                    color: '#ffffff',
+                    weight: 2.5,
+                    fillOpacity: 1
+                }).bindPopup(`
+                    <b>${f.properties.name_fac}</b><br>
+                    ${f.properties.facility_type}<br>
+                    <small>${Math.round(f.properties.distance_m)}m away</small>
+                `);
+                layers.push(marker);
+            });
+            nearbyLayer = L.layerGroup(layers).addTo(map);
+        })
+        .catch(err => console.error('Nearest facilities error:', err));
+}
+
+// Shows admin area polygons coloured by gap score (needs minus offers)
+function showAreaStats() {
+    [...needMarkers, ...offerMarkers, ...facilityMarkers].forEach(m => map.removeLayer(m));
+    needMarkers = []; offerMarkers = []; facilityMarkers = [];
+
+    fetch('/admin-areas/stats?admin_level=8')
+        .then(res => res.json())
+        .then(data => {
+            data.features.forEach(f => {
+                const gap = f.properties.gap_score;
+                // Red for high gap, yellow for medium, green for covered
+                const color = gap > 2 ? '#d32f2f' : gap > 0 ? '#f9a825' : '#388e3c';
+
+                const layer = L.geoJSON(f.geometry, {
+                    style: {
+                        fillColor: color,
+                        fillOpacity: 0.5,
+                        color: '#fff',
+                        weight: 0.5
+                    }
+                }).bindPopup(`
+                    <b>${f.properties.name_area}</b><br>
+                    Needs: ${f.properties.need_count}<br>
+                    Offers: ${f.properties.offer_count}<br>
+                    Gap: ${f.properties.gap_score}
+                `).addTo(map);
+
+                facilityMarkers.push(layer);
+            });
+        })
+        .catch(err => console.error('Area stats error:', err));
+}
 
 // Event listeners
 document.getElementById("btn-my-needs").addEventListener("click", () => {
@@ -580,6 +739,11 @@ document.getElementById("btn-my-assignments").addEventListener("click", () => {
     showUserItems('assignments')
 });
 
+document.getElementById("btn-uncovered").addEventListener("click", showUncoveredNeeds);
+document.getElementById("btn-facilities").addEventListener("click", () => {
+    alert("Click a need marker and use the 'Nearby Facilities' button in the popup.");
+});
+document.getElementById("btn-area-stats").addEventListener("click", showAreaStats);
 
 
 
