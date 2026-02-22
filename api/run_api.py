@@ -562,8 +562,7 @@ def get_uncovered_needs():
                 FROM offer o
                 WHERE o.category  = n.category
                   AND o.status_id = (SELECT status_id FROM status_domain WHERE code = 'active')
-                  AND ST_DWithin(o.geom, n.geom, %(radius)s)
-              )
+                  AND ST_DWithin(ST_Transform(o.geom, 4326)::geography, ST_Transform(n.geom, 4326)::geography, %(radius)s)              )
             ORDER BY u.urgency_id ASC
         """, {"radius": radius})
 
@@ -644,9 +643,9 @@ def get_nearby_offers(need_id):
                 o.address_point,
                 c.name_cat AS category,
                 ST_AsGeoJSON(o.geom)::json AS geom,
-                ROUND(ST_Distance(o.geom, n.geom)::numeric, 1) AS distance_m,
+                ROUND(ST_Distance(ST_Transform(o.geom, 4326)::geography, ST_Transform(n.geom, 4326)::geography)::numeric, 1) AS distance_m,
                 CASE
-                    WHEN ST_DWithin(o.geom, n.geom, %(radius)s) THEN 'nearby'
+                    WHEN ST_DWithin(ST_Transform(o.geom, 4326)::geography, ST_Transform(n.geom, 4326)::geography, %(radius)s) THEN 'nearby'
                     ELSE 'related'
                 END AS proximity,
                 ST_AsGeoJSON(n.geom)::json AS need_geom
@@ -743,7 +742,7 @@ def get_nearest_facilities(need_id):
                 f.name_fac,
                 f.facility_type,
                 ST_AsGeoJSON(f.geom)::json AS geom,
-                ROUND(ST_Distance(f.geom, n.geom)::numeric, 1) AS distance_m
+                ROUND(ST_Distance(ST_Transform(f.geom, 4326)::geography, ST_Transform(n.geom, 4326)::geography)::numeric, 1) AS distance_m
             FROM facility f
             JOIN need n ON n.need_id = %(need_id)s
             WHERE 1=1 {type_filter}
