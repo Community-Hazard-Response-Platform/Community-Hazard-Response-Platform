@@ -700,14 +700,15 @@ def get_nearby_offers(need_id):
 
 @app.route('/needs/<int:need_id>/nearest-facilities', methods=['GET'])
 def get_nearest_facilities(need_id):
-    """Returns the nearest facilities to a given need, optionally filtered by type.
+    """Returns the nearest facilities to a given need, filtered by need category.
 
     Args:
         need_id (int): the ID of the need (from URL)
 
     Query params:
-        type (str): optional facility type to filter by (e.g. 'hospital', 'pharmacy')
+        type (str): optional facility type filter
         limit (int): max number of facilities to return (default: 5)
+        need_category (str): need category to map to relevant facility types
 
     Returns:
         GeoJSON FeatureCollection of nearest facilities ordered by distance ascending
@@ -716,7 +717,6 @@ def get_nearest_facilities(need_id):
     limit = request.args.get('limit', 5, type=int)
     need_category = request.args.get('need_category', None)
 
-    # Map need categories to relevant facility types
     CATEGORY_FACILITY_MAP = {
         'medical':      ['hospital', 'clinic', 'pharmacy', 'ambulance_station'],
         'shelter':      ['shelter', 'community_centre', 'sports_centre', 'school'],
@@ -727,37 +727,57 @@ def get_nearest_facilities(need_id):
         'childcare':    ['school', 'community_centre'],
         'pets':         ['veterinary'],
         'safety':       ['police', 'fire_station', 'emergency_service'],
+        'hygiene':      ['pharmacy', 'community_centre'],
+        'clothing':     ['community_centre', 'shelter'],
+        'repairs':      ['community_centre'],
+        'education':    ['school', 'university'],
+        'tech':         ['community_centre', 'university'],
+        'legal':        ['community_centre'],
+        'logistics':    ['community_centre'],
+        'translation':  ['community_centre'],
+        'social':       ['community_centre'],
+        'donation':     ['community_centre'],
+        'other':        ['community_centre'],
     }
 
-    # If need_category provided, override facility_type with relevant types
-    if need_category and need_category in CATEGORY_FACILITY_MAP:
-        relevant_types = CATEGORY_FACILITY_MAP[need_category]
-        type_filter = "AND f.facility_type IN :relevant_types"
-    else:
-        relevant_types = None
-        type_filter = "AND f.facility_type = :facility_type" if facility_type else ""
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        cursor.execute(f"""
-            SELECT
-                f.facility_id,
-                f.name_fac,
-                f.facility_type,
-                ST_AsGeoJSON(f.geom)::json AS geom,
-                ROUND(ST_Distance(ST_Transform(f.geom, 4326)::geography, ST_Transform(n.geom, 4326)::geography)::numeric, 1) AS distance_m
-            FROM facility f
-            JOIN need n ON n.need_id = %(need_id)s
-            WHERE 1=1 {type_filter}
-            ORDER BY distance_m ASC
-            LIMIT %(limit)s
-        """, {
-            "need_id": need_id,
-            "facility_type": facility_type,
-            "relevant_types": tuple(relevant_types) if relevant_types else None,
-            "limit": limit
-        })
+        cursor.execute("SELECT need_id FROM need WHERE need_id = %s", (need_id,))
+        if cursor.fetchone() is None:
+            return jsonify({"error": f"Need {need_id} not found"}), 404
+
+        if need_category and need_category in CATEGORY_FACILITY_MAP:
+            relevant_types = tuple(CATEGORY_FACILITY_MAP[need_category])
+            cursor.execute("""
+                SELECT
+                    f.facility_id,
+                    f.name_fac,
+                    f.facility_type,
+                    ST_AsGeoJSON(f.geom)::json AS geom,
+                    ROUND(ST_Distance(ST_Transform(f.geom, 4326)::geography, ST_Transform(n.geom, 4326)::geography)::numeric, 1) AS distance_m
+                FROM facility f
+                JOIN need n ON n.need_id = %(need_id)s
+                WHERE f.facility_type IN %(relevant_types)s
+                ORDER BY distance_m ASC
+                LIMIT %(limit)s
+            """, {"need_id": need_id, "relevant_types": relevant_types, "limit": limit})
+        else:
+            type_filter = "AND f.facility_type = %(facility_type)s" if facility_type else ""
+            cursor.execute(f"""
+                SELECT
+                    f.facility_id,
+                    f.name_fac,
+                    f.facility_type,
+                    ST_AsGeoJSON(f.geom)::json AS geom,
+                    ROUND(ST_Distance(ST_Transform(f.geom, 4326)::geography, ST_Transform(n.geom, 4326)::geography)::numeric, 1) AS distance_m
+                FROM facility f
+                JOIN need n ON n.need_id = %(need_id)s
+                WHERE 1=1 {type_filter}
+                ORDER BY distance_m ASC
+                LIMIT %(limit)s
+            """, {"need_id": need_id, "facility_type": facility_type, "limit": limit})
 
         rows = cursor.fetchall()
 
