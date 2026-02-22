@@ -47,6 +47,8 @@ def extraction(config: dict) -> None:
                 gdf['facility_type'] = facility_type
                 all_facilities.append(gdf)
                 e.info(f"  -> Found {len(gdf)} {facility_type}")
+            else:
+                e.info(f"  -> No results for {facility_type}")
 
     if all_facilities:
         facilities_gdf = pd.concat(all_facilities, ignore_index=True)

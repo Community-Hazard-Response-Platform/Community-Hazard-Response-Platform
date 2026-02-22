@@ -111,6 +111,10 @@ def extract_osm_data(tags: list, overpass_url: str, delay: int = 5, attempts: in
         (
         node{tag_string}(area.portugal);
         way{tag_string}(area.portugal);
+        ) -> .all;
+        (
+        node.all(36.8,-9.6,42.2,-6.1);
+        way.all(36.8,-9.6,42.2,-6.1);
         );
         out center;
         """
