@@ -46,6 +46,10 @@
         <button class="btn-primary" id="btn-uncovered">Uncovered Needs</button>
         <button class="btn-primary" id="btn-facilities">Nearest Facilities</button>
         <button class="btn-primary" id="btn-area-stats">Area Stats</button>
+        <div class="button-row" id="area-stats-toggle" style="display:none;">
+            <button class="btn-primary" id="btn-parishes">Parishes</button>
+            <button class="btn-primary" id="btn-municipalities">Municipalities</button>
+        </div>
     </div>
         
 
@@ -694,16 +698,15 @@ function showNearestFacilities(needId, needCategory) {
 }
 
 // Shows admin area polygons coloured by gap score (needs minus offers)
-function showAreaStats() {
+function showAreaStats(adminLevel) {
     [...needMarkers, ...offerMarkers, ...facilityMarkers].forEach(m => map.removeLayer(m));
     needMarkers = []; offerMarkers = []; facilityMarkers = [];
 
-    fetch('/admin-areas/stats?admin_level=8')
+    fetch(`/admin-areas/stats?admin_level=${adminLevel}`)
         .then(res => res.json())
         .then(data => {
             data.features.forEach(f => {
                 const gap = f.properties.gap_score;
-                // Red for high gap, yellow for medium, green for covered
                 const color = gap > 2 ? '#d32f2f' : gap > 0 ? '#f9a825' : '#388e3c';
 
                 const layer = L.geoJSON(f.geometry, {
@@ -743,8 +746,18 @@ document.getElementById("btn-uncovered").addEventListener("click", showUncovered
 document.getElementById("btn-facilities").addEventListener("click", () => {
     alert("Click a need marker and use the 'Nearby Facilities' button in the popup.");
 });
-document.getElementById("btn-area-stats").addEventListener("click", showAreaStats);
+document.getElementById("btn-area-stats").addEventListener("click", () => {
+    const toggle = document.getElementById("area-stats-toggle");
+    toggle.style.display = toggle.style.display === 'none' ? 'flex' : 'none';
+});
 
+document.getElementById("btn-parishes").addEventListener("click", () => {
+    showAreaStats(8);
+});
+
+document.getElementById("btn-municipalities").addEventListener("click", () => {
+    showAreaStats(6);
+});
 
 
 </script>
