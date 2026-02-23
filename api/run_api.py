@@ -23,8 +23,24 @@ def load_config(path="config/config.yml"):
     """
     base_dir = Path(__file__).resolve().parent.parent
     config_path = base_dir / path
-    with open(config_path) as f:
-        return yaml.safe_load(f)
+    if config_path.exists():
+        with open(config_path, "r") as f:
+            return yaml.safe_load(f)
+
+    # If not exists (Render)
+    return {
+        "database": {
+            "host": os.environ.get("DB_HOST"),
+            "port": os.environ.get("DB_PORT"),
+            "database": os.environ.get("DB_NAME"),
+            "username": os.environ.get("DB_USER"),
+            "password": os.environ.get("DB_PASSWORD"),
+        },
+        "email": {
+            "address": os.environ.get("EMAIL_ADDRESS"),
+            "password": os.environ.get("EMAIL_PASSWORD"),
+        }
+    }
 
 
 config = load_config()
