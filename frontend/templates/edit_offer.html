@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Edit Offer</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<link rel="icon" href="../static/images/logo_light.png" type="image/png">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+
+<body data-offer-id="{{ offer_id }}">
+
+<div class="card card--wide">
+    <a href="/dashboard" class="back-arrow">←</a>
+
+    <h2>Update Offer</h2>
+
+    <form class="form">
+
+        <input type="text" id="title" class="input-field" required>
+        <textarea id="description" class="input-field" required></textarea>
+
+        <input type="text" id="address_point" class="input-field">
+
+        <select id="category" class="input-field" required>
+            <option value="">Select Category</option>
+        </select>
+
+        <div id="map" style="height: 400px; border-radius: 12px; margin-bottom: 15px;"></div>
+
+        <div class="button-row">
+            <button type="button" class="btn-primary" id="updateOfferBtn">
+                Update Offer
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<script>
+
+function mercatorToLatLng(x, y) {
+    const R = 6378137;
+    const lng = x / R * (180 / Math.PI);
+    const lat = (2 * Math.atan(Math.exp(y / R)) - Math.PI / 2) * (180 / Math.PI);
+    return [lat, lng];
+}
+
+const OFFER_ID = parseInt(document.body.dataset.offerId);
+
+const offerIcon = L.icon({
+    iconUrl: "/static/images/pin-green.png",
+    iconSize: [50, 50],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
+});
+
+let map = L.map('map', { zoomControl: false }).setView([38.7169, -9.1395], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+let marker;
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    // Load categories
+    fetch("/categories")
+        .then(res => res.json())
+        .then(categories => {
+            const select = document.getElementById("category");
+            categories.forEach(cat => {
+                const option = document.createElement("option");
+                option.value = cat.id;
+                option.textContent = cat.name_cat;
+                select.appendChild(option);
+            });
+        });
+
+    // Fetch offer data
+    fetch(`/offers/${OFFER_ID}`)
+        .then(res => res.json())
+        .then(feature => {
+
+            const props = feature.properties;
+
+            document.getElementById("title").value = props.title;
+            document.getElementById("description").value = props.descrip;
+            document.getElementById("address_point").value = props.address_point || "";
+            document.getElementById("category").value = props.category || "";
+
+            const geom = feature.geometry;
+            const [lat, lng] = mercatorToLatLng(...geom.coordinates);
+
+            marker = L.marker([lat, lng], { icon: offerIcon }).addTo(map);
+            map.setView([lat, lng], 14);
+        });
+});
+
+map.on('click', e => {
+    const { lat, lng } = e.latlng;
+    if (marker) map.removeLayer(marker);
+    marker = L.marker([lat, lng], { icon: offerIcon }).addTo(map);
+});
+
+document.getElementById("updateOfferBtn").addEventListener("click", () => {
+
+    if (!marker) {
+        alert("Please select a location on the map!");
+        return;
+    }
+
+    const payload = {
+        title: document.getElementById("title").value,
+        descrip: document.getElementById("description").value,
+        category: parseInt(document.getElementById("category").value),
+        address_point: document.getElementById("address_point").value,
+        geom: JSON.stringify({
+            type: "Point",
+            coordinates: [
+                marker.getLatLng().lng,
+                marker.getLatLng().lat
+            ]
+        })
+    };
+
+    fetch(`/edit-offer/${OFFER_ID}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Offer updated!");
+            window.location.href = "/dashboard";
+        } else {
+            alert("Error updating offer");
+        }
+    });
+});
+
+</script>
+</body>
+</html>

@@ -159,6 +159,7 @@ document.getElementById("updateNeedBtn").addEventListener("click", () => {
         descrip: document.getElementById("description").value,
         category: parseInt(document.getElementById("category").value),
         urgency: parseInt(document.getElementById("urgency").value),
+        address_point: parseInt(document.getElementById("address_point").value),
         geom: JSON.stringify({
             type: "Point",
             coordinates: [marker.getLatLng().lng, marker.getLatLng().lat]  // Leaflet lat/lng → GeoJSON [lng, lat]
