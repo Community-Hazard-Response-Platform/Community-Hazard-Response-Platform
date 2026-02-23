@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 from flask import Flask, json, redirect, request, jsonify, render_template, url_for, session
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -10,6 +11,7 @@ import secrets
 import smtplib
 import yaml
 from email.message import EmailMessage
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 
 def load_config(path="config/config.yml"):
