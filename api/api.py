@@ -8,10 +8,15 @@ import bcrypt
 import secrets
 import smtplib
 import yaml
+import json
 from email.message import EmailMessage
 
-def load_config(path="../config/config.yml"):
-    with open(path) as f:
+def load_config():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    config_path = os.path.join(project_root, "config", "config.yml")
+
+    with open(config_path) as f:
         return yaml.safe_load(f)
 
 config = load_config()
@@ -23,6 +28,7 @@ DB_CONFIG = {
     "password": db_cfg["password"],
     "host":     db_cfg["host"],
     "port":     db_cfg["port"]
+
 }
 
 db_pool = SimpleConnectionPool(
@@ -276,7 +282,7 @@ def login():
             session["user_id"] = user["user_id"]
             session["username"] = user["username"]
 
-            return render_template("dashboard.html", username=user["username"])
+            return render_template("dashboard.html", username=user["username"], user_id=session["user_id"])
         else:
             return render_template("login.html", error="Username and password do not match")
 
@@ -331,7 +337,7 @@ def dashboard():
     if "user_id" not in session:
         return redirect("/")
 
-    return render_template("dashboard.html", username=session["username"])
+    return render_template("dashboard.html", username=session["username"], user_id=session["user_id"])
 
 @app.route("/logout")
 def logout():
@@ -360,6 +366,58 @@ def get_categories():
 
 
 # NEEDS (GeoJSON)
+@app.route("/edit-need/<int:need_id>")
+def edit_need_page(need_id):
+    return render_template("edit_need.html", need_id=need_id)
+
+@app.route("/edit-need/<int:need_id>", methods=["GET"])
+def edit_need(need_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT need_id, title, descrip, urgency, category, ST_AsGeoJSON(geom) AS geom
+        FROM need
+        WHERE need_id = %s AND user_id = %s
+    """, (need_id, session["user_id"]))
+    row = cursor.fetchone()
+    cursor.close()
+    release_db_connection(conn)
+
+    if not row:
+        return "Need not found or you don't have permission", 404
+
+    return render_template("edit_need.html", need=row)
+
+@app.route("/edit-need/<int:need_id>", methods=["POST"])
+def update_need(need_id):
+    data = request.get_json()  
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE need
+        SET title = %s,
+            descrip = %s,
+            urgency = %s,
+            category = %s,
+            address_point = %s,
+            geom = ST_Transform(
+            ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326),3857),
+            updated_at = NOW()
+        WHERE need_id = %s AND user_id = %s
+    """, (
+        data["title"],
+        data["descrip"],
+        data["urgency"],
+        data["category"],
+        data["address_point"],
+        data["geom"],
+        need_id,
+        session["user_id"]
+    ))
+    conn.commit()
+    cursor.close()
+    release_db_connection(conn)
+    return {"success": True}
 
 @app.route('/needs', methods=['GET'])
 def get_needs():
@@ -368,6 +426,7 @@ def get_needs():
     try:
         cursor.execute("""
             SELECT n.need_id,
+                   n.user_id,
                    n.title,
                    n.descrip,
                    n.address_point,
@@ -379,13 +438,14 @@ def get_needs():
             JOIN status_domain s ON n.status_id = s.status_id
             JOIN urgency_domain u ON n.urgency = u.urgency_id
             JOIN category c ON n.category = c.category_id
+            WHERE s.code = 'active'
         """)
         needs = cursor.fetchall()
     finally:
         cursor.close()
         release_db_connection(conn)
 
-    return jsonify(format_geojson(needs)) 
+    return jsonify(format_geojson(needs))
 
 
 @app.route('/needs', methods=['POST'])
@@ -469,12 +529,20 @@ def my_needs():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT ST_AsGeoJSON(geom) AS geom, title, descrip
+            SELECT need_id, user_id, ST_AsGeoJSON(geom) AS geom, title, descrip
             FROM need
             WHERE user_id=%s
         """, (user_id,))
-        features = [{"geom": row["geom"], "title": row["title"], "descrip": row["descrip"]} 
-                    for row in cursor.fetchall()]
+        features = [
+            {
+                "id": row["need_id"],          
+                "user_id": row["user_id"],
+                "geom": row["geom"],
+                "title": row["title"],
+                "descrip": row["descrip"]
+            } 
+            for row in cursor.fetchall()
+        ]
     finally:
         cursor.close()
         release_db_connection(conn)
@@ -482,12 +550,140 @@ def my_needs():
     return jsonify({"features": features})
 
 
+@app.route("/needs/<int:need_id>")
+def need_details(need_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT n.need_id, n.title, n.descrip, n.urgency, n.category, n.user_id, n.address_point,
+                   ST_AsGeoJSON(n.geom) AS geom
+            FROM need n
+            WHERE n.need_id = %s
+        """, (need_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"error": "Need not found"}), 404
+
+        geom = json.loads(row["geom"])  # Convertir string JSON a objeto
+        return jsonify({
+            "type": "Feature",
+            "geometry": geom,
+            "properties": {
+                "need_id": row["need_id"],
+                "title": row["title"],
+                "descrip": row["descrip"],
+                "urgency": row["urgency"],
+                "category": row["category"],
+                "user_id": row["user_id"],
+                "address_point": row.get("address_point", "")
+            }
+        })
+    finally:
+        cursor.close()
+        release_db_connection(conn)
 
 # OFFERS (GeoJSON)
 
+@app.route("/edit-offer/<int:offer_id>", methods=["POST"])
+def update_offer(offer_id):
+    data = request.get_json()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE offer
+        SET title = %s,
+            descrip = %s,
+            category = %s,
+            address_point = %s,
+            geom = ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326), 3857),
+            updated_at = NOW()
+        WHERE offer_id = %s AND user_id = %s
+    """, (
+        data["title"],
+        data["descrip"],
+        data["category"],
+        data["address_point"],
+        data["geom"],
+        offer_id,
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cursor.close()
+    release_db_connection(conn)
+
+    return {"success": True}
+
+@app.route("/edit-offer/<int:offer_id>")
+def edit_offer_page(offer_id):
+    return render_template("edit_offer.html", offer_id=offer_id)
+
+@app.route("/edit-offer/<int:offer_id>", methods=["GET"])
+def edit_offer(offer_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT 
+            offer_id,
+            title,
+            descrip,
+            category,
+            address_point,
+            ST_AsGeoJSON(ST_Transform(geom, 4326)) AS geom
+        FROM offer
+        WHERE offer_id = %s AND user_id = %s
+    """, (offer_id, session["user_id"]))
+
+    row = cursor.fetchone()
+
+    cursor.close()
+    release_db_connection(conn)
+
+    if not row:
+        return "Offer not found or you don't have permission", 404
+
+    return render_template("edit_offer.html", offer=row)
+
+@app.route("/offers/<int:offer_id>")
+def get_offer(offer_id):
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT json_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(geom)::json,
+            'properties', json_build_object(
+                'offer_id', offer_id,
+                'title', title,
+                'descrip', descrip,
+                'category', category,
+                'address_point', address_point
+            )
+        ) AS feature
+        FROM offer
+        WHERE offer_id = %s AND user_id = %s
+    """, (offer_id, session["user_id"]))
+
+    row = cursor.fetchone()
+
+    cursor.close()
+    release_db_connection(conn)
+
+    if not row:
+        return {"error": "Offer not found"}, 404
+
+    return row["feature"]
+
+
 @app.route("/my-offers", methods=["GET"])
 def my_offers():
-    user_id = session["user_id"]
+    user_id = session.get("user_id")
     if not user_id:
         return jsonify({"features": []})
 
@@ -495,17 +691,26 @@ def my_offers():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT ST_AsGeoJSON(geom) AS geom, title, descrip
+            SELECT offer_id, user_id, ST_AsGeoJSON(geom) AS geom, title, descrip
             FROM offer
             WHERE user_id = %s
         """, (user_id,))
-        features = [{"geom": row["geom"], "title": row["title"], "descrip": row["descrip"]} 
-                            for row in cursor.fetchall()]
+        features = [
+            {
+                "id": row["offer_id"],          
+                "user_id": row["user_id"],
+                "geom": row["geom"],
+                "title": row["title"],
+                "descrip": row["descrip"]
+            } 
+            for row in cursor.fetchall()
+        ]
     finally:
         cursor.close()
         release_db_connection(conn)
 
     return jsonify({"features": features})
+
 
 
 @app.route('/offers', methods=['GET'])
@@ -515,6 +720,7 @@ def get_offers():
     try:
         cursor.execute("""
             SELECT o.offer_id,
+                   o.user_id,
                    o.title,
                    o.descrip,
                    o.address_point,
@@ -524,6 +730,8 @@ def get_offers():
             FROM offer o
             JOIN status_domain s ON o.status_id = s.status_id
             JOIN category c ON o.category = c.category_id
+            WHERE s.code = 'active'
+
         """)
         offers = cursor.fetchall()
     finally:
@@ -604,33 +812,6 @@ def create_offer_form():
 
 # ASSIGNMENTS
 
-@app.route('/assignments', methods=['POST'])
-def create_assignment():
-    body = request.get_json()
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    query = """
-        INSERT INTO assignments (need_id, offer_id, notes)
-        VALUES (%s, %s, %s)
-        RETURNING assignment_id
-    """
-
-    try:
-        cursor.execute(query, (
-            body["need_id"],
-            body["offer_id"],
-            body.get("notes")
-        ))
-        assignment_id = cursor.fetchone()["assignment_id"]
-        conn.commit()
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cursor.close()
-        release_db_connection(conn)
-
-    return jsonify({"message": f"Assignment {assignment_id} created"}), 201
 
 @app.route("/my-assignments")
 def my_assignments():
@@ -663,6 +844,93 @@ def my_assignments():
         release_db_connection(conn)
 
     return jsonify({"features": features})
+
+
+@app.route("/assignments", methods=["POST"])
+def create_assignment():
+    """
+    Crear un assignment a partir de una necesidad o una oferta.
+    - Si se acepta una necesidad, crea primero un offer temporal.
+    - Si se acepta una oferta, crea primero una need temporal.
+    """
+    data = request.json
+    user_id = session["user_id"]
+
+    need_id = data.get("need_id")
+    offer_id = data.get("offer_id")
+
+    if not need_id and not offer_id:
+        return jsonify({"error": "No item to assign"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # --- CREAR ITEMS TEMPORALES SI NO EXISTEN ---
+        if need_id and not offer_id:
+            # Aceptaste una necesidad → crear oferta temporal para ti
+            cursor.execute("""
+                INSERT INTO offer (user_id, title, descrip, category, geom, status_id)
+                SELECT %s, title, descrip, category, geom, 
+                       (SELECT status_id FROM status_domain WHERE code='active')
+                FROM need
+                WHERE need_id = %s
+                RETURNING offer_id
+            """, (user_id, need_id))
+            offer_id = cursor.fetchone()["offer_id"]  
+
+        elif offer_id and not need_id:
+            # Aceptaste una oferta → crear necesidad temporal para ti
+            cursor.execute("""
+                INSERT INTO need (user_id, title, descrip, category, geom, status_id)
+                SELECT %s, title, descrip, category, geom, 
+                       (SELECT status_id FROM status_domain WHERE code='active')
+                FROM offer
+                WHERE offer_id = %s
+                RETURNING need_id
+            """, (user_id, offer_id))
+            need_id = cursor.fetchone()["need_id"]  
+
+
+        # --- CREAR ASSIGNMENT ---
+        cursor.execute("""
+            INSERT INTO assignments (need_id, offer_id, status_ass)
+            VALUES (%s, %s, 'proposed')
+            RETURNING assignment_id
+        """, (need_id, offer_id))
+        assignment_id = cursor.fetchone()["assignment_id"]
+
+        # --- ACTUALIZAR STATUS DE NEED Y OFFER ---
+        cursor.execute("""
+            UPDATE need
+            SET status_id = (SELECT status_id FROM status_domain WHERE code='assigned')
+            WHERE need_id = %s
+        """, (need_id,))
+        cursor.execute("""
+            UPDATE offer
+            SET status_id = (SELECT status_id FROM status_domain WHERE code='assigned')
+            WHERE offer_id = %s
+        """, (offer_id,))
+
+        conn.commit()
+
+        return jsonify({"success": True, "assignment_id": assignment_id, "need_id": need_id, "offer_id": offer_id}), 201
+
+    finally:
+        cursor.close()
+        release_db_connection(conn)
+
+
+
+def send_email(to_email, subject, body):
+    msg = email.message.EmailMessage()
+    msg.set_content(body)
+    msg["Subject"] = subject
+    msg["From"] = "no-reply@community-platform.com"
+    msg["To"] = to_email
+
+    with smtplib.SMTP("localhost") as s:
+        s.send_message(msg)
+
 
 
 
@@ -769,7 +1037,7 @@ def search():
 
         # Needs
         if filter_type in ("needs", "all"):
-            sql = "SELECT title, descrip, ST_AsGeoJSON(geom) AS geom FROM need"
+            sql = "SELECT title, descrip, ST_AsGeoJSON(geom) AS geom FROM need AS n JOIN status_domain s ON n.status_id = s.status_id AND s.code = 'active'"
             if geom_filter:
                 sql += " WHERE ST_Within(geom, %s)"
                 cursor.execute(sql, (geom_filter,))
@@ -779,7 +1047,7 @@ def search():
 
         # Offers
         if filter_type in ("offers", "all"):
-            sql = "SELECT descrip, ST_AsGeoJSON(geom) AS geom FROM offer"
+            sql = "SELECT descrip, ST_AsGeoJSON(geom) AS geom FROM offer AS o JOIN status_domain s ON o.status_id = s.status_id AND s.code = 'active'"
             if geom_filter:
                 sql += " WHERE ST_Within(geom, %s)"
                 cursor.execute(sql, (geom_filter,))
