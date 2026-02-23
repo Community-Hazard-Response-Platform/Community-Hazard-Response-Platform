@@ -12,6 +12,76 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+<style>
+    #facility-filter-panel,
+    #facility-filter-panel * {
+        all: revert;
+    }
+    #facility-filter-panel {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 12px;
+        padding: 12px;
+        z-index: 2000;
+        min-width: 200px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-size: 14px;
+        font-family: 'Satoshi', sans-serif;
+        text-align: left;
+    }
+    #facility-filter-panel label {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 6px;
+        text-align: left;
+        width: 100%;
+        margin-bottom: 4px;
+        font-weight: 400;
+        cursor: pointer;
+    }
+    #facility-filter-panel .facility-group-label {
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+    #facility-filter-panel .facility-subgroup {
+        margin-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 4px;
+    }
+    #facility-filter-panel input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+        min-width: 14px;
+        flex-shrink: 0;
+        margin: 0;
+        padding: 0;
+        cursor: pointer;
+        accent-color: #FFAA00;
+    }
+    #facility-filter-panel .facility-group {
+        margin-bottom: 8px;
+    }
+    #facility-filter-panel .btn-primary {
+        width: 100%;
+        margin-top: 8px;
+        margin-bottom: 0;
+        height: 34px;
+        padding: 0 12px;
+        background-color: #FFAA00;
+        color: white;
+        border: none;
+        border-radius: 25px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+</style>
 </head>
 <body data-user-id="{{ user_id }}">
 
@@ -43,41 +113,6 @@
         </div>
 
         <button class="btn-primary" id="btn-my-assignments">My Assignments</button>
-    
-        <button class="btn-primary" id="btn-facilities">Facilities</button>
-        <div id="facilities-panel" style="display:none;">
-            <div class="facility-group">
-                <label class="facility-group-label">
-                    <input type="checkbox" class="group-check" data-group="emergency"> Emergency
-                </label>
-                <div class="facility-subgroup" data-group="emergency">
-                    <label><input type="checkbox" class="facility-check" value="hospital"> Hospital</label>
-                    <label><input type="checkbox" class="facility-check" value="fire_station"> Fire Station</label>
-                    <label><input type="checkbox" class="facility-check" value="police"> Police</label>
-                </div>
-            </div>
-            <div class="facility-group">
-                <label class="facility-group-label">
-                    <input type="checkbox" class="group-check" data-group="healthcare"> Healthcare
-                </label>
-                <div class="facility-subgroup" data-group="healthcare">
-                    <label><input type="checkbox" class="facility-check" value="clinic"> Clinic</label>
-                    <label><input type="checkbox" class="facility-check" value="pharmacy"> Pharmacy</label>
-                </div>
-            </div>
-            <div class="facility-group">
-                <label class="facility-group-label">
-                    <input type="checkbox" class="group-check" data-group="shelter"> Shelter
-                </label>
-                <div class="facility-subgroup" data-group="shelter">
-                    <label><input type="checkbox" class="facility-check" value="school"> School</label>
-                    <label><input type="checkbox" class="facility-check" value="community_centre"> Community Centre</label>
-                    <label><input type="checkbox" class="facility-check" value="sports_centre"> Sports Centre</label>
-                </div>
-            </div>
-            <button class="btn-primary" id="btn-apply-facilities">Apply</button>
-        </div>
-
         <button class="btn-primary" id="btn-uncovered">Uncovered Needs</button>
         <button class="btn-primary" id="btn-area-stats">Area Stats</button>
         <div class="button-row" id="area-stats-toggle" style="display:none;">
@@ -113,7 +148,42 @@
         <option value="all">All</option>
     </select>
 
-    <select id="facilitySelect"></select>
+    <div class="facility-filter-wrapper">
+        <button class="btn-primary" id="btn-facility-filter">Facilities ▾</button>
+        <div id="facility-filter-panel" style="display:none;">
+            <div class="facility-group">
+                <label class="facility-group-label">
+                    <input type="checkbox" class="group-check" data-group="emergency"> Emergency
+                </label>
+                <div class="facility-subgroup" data-group="emergency">
+                    <label><input type="checkbox" class="facility-check" value="hospitals"> Hospital</label>
+                    <label><input type="checkbox" class="facility-check" value="fire_stations"> Fire Station</label>
+                    <label><input type="checkbox" class="facility-check" value="police"> Police</label>
+                </div>
+            </div>
+            <div class="facility-group">
+                <label class="facility-group-label">
+                    <input type="checkbox" class="group-check" data-group="healthcare"> Healthcare
+                </label>
+                <div class="facility-subgroup" data-group="healthcare">
+                    <label><input type="checkbox" class="facility-check" value="clinics"> Clinic</label>
+                    <label><input type="checkbox" class="facility-check" value="pharmacies"> Pharmacy</label>
+                </div>
+            </div>
+            <div class="facility-group">
+                <label class="facility-group-label">
+                    <input type="checkbox" class="group-check" data-group="shelter"> Shelter
+                </label>
+                <div class="facility-subgroup" data-group="shelter">
+                    <label><input type="checkbox" class="facility-check" value="schools"> School</label>
+                    <label><input type="checkbox" class="facility-check" value="community_centres"> Community Centre</label>
+                    <label><input type="checkbox" class="facility-check" value="sports_centres"> Sports Centre</label>
+                    <label><input type="checkbox" class="facility-check" value="universities"> University</label>
+                </div>
+            </div>
+            <button class="btn-primary" id="btn-apply-facilities-search">Apply</button>
+        </div>
+    </div>
 
     <div class="autocomplete-wrapper">
         <input type="text" id="searchInput" placeholder="Search by administrative area...">
@@ -180,9 +250,9 @@ const facilityStyles = {
     shelter:    { radius: 3, fillColor: '#388e3c', color: '#388e3c', weight: 1, opacity: 1, fillOpacity: 0.9 }
 };
 
-const emergencyTypes  = ['hospitals', 'hospital', 'fire_stations', 'fire_station', 'police'];
-const healthcareTypes = ['clinics', 'clinic', 'pharmacies', 'pharmacy'];
-const shelterTypes    = ['schools', 'school', 'universities', 'university', 'community_centres', 'community_centre', 'sports_centres', 'sports_centre'];
+const emergencyTypes  = ['hospitals', 'fire_stations', 'police'];
+const healthcareTypes = ['clinics', 'pharmacies'];
+const shelterTypes    = ['schools', 'universities', 'community_centres', 'sports_centres'];
 
 function getFacilityStyle(facilityType) {
     if (emergencyTypes.includes(facilityType))  return facilityStyles.emergency;
@@ -310,13 +380,11 @@ toggleBtn.addEventListener("click", () => {
 function applySearch() {
     const query = document.getElementById("searchInput").value.trim();
     const filter = document.getElementById("filterSelect").value;
-    const selectedFacilities = Array.from(facilitySelect.selectedOptions).map(opt => opt.value);
 
     // Construir query string
     const params = new URLSearchParams();
     if (query) params.append("query", query);
     if (filter) params.append("type", filter);
-    selectedFacilities.forEach(f => params.append("facilityTypes", f));
 
     fetch("/search?" + params.toString())
         .then(res => res.json())
@@ -376,25 +444,6 @@ function applySearch() {
 
 // to bring the facilities
 const facilitySelect = document.getElementById("facilitySelect");
-
-fetch("/facility-types")
-    .then(res => res.json())
-    .then(types => {
-        facilitySelect.innerHTML = "";
-
-        const allOption = document.createElement("option");
-        allOption.value = "all";
-        allOption.text = "All Facilities";
-        allOption.selected = true;
-        facilitySelect.appendChild(allOption);
-
-        types.forEach(type => {
-            const option = document.createElement("option");
-            option.value = type;
-            option.text = type.charAt(0).toUpperCase() + type.slice(1);
-            facilitySelect.appendChild(option);
-        });
-    });
 
     // to show markers of needs
     fetch('/needs').then(res => res.json()).then(data => {
@@ -769,10 +818,21 @@ document.getElementById("btn-my-assignments").addEventListener("click", () => {
 });
 
 document.getElementById("btn-uncovered").addEventListener("click", showUncoveredNeeds);
-// Toggle facilities panel
-document.getElementById("btn-facilities").addEventListener("click", () => {
-    const panel = document.getElementById("facilities-panel");
+
+// Toggle facility filter panel in search bar
+document.getElementById("btn-facility-filter").addEventListener("click", (e) => {
+    e.stopPropagation();
+    const panel = document.getElementById("facility-filter-panel");
     panel.style.display = panel.style.display === "none" ? "block" : "none";
+});
+
+// Close panel when clicking outside
+document.addEventListener("click", (e) => {
+    const panel = document.getElementById("facility-filter-panel");
+    const wrapper = document.querySelector(".facility-filter-wrapper");
+    if (!wrapper.contains(e.target)) {
+        panel.style.display = "none";
+    }
 });
 
 // Group checkbox toggles all children
@@ -784,26 +844,27 @@ document.querySelectorAll(".group-check").forEach(groupCheck => {
     });
 });
 
-// Apply button — fetch and render selected facility types
-document.getElementById("btn-apply-facilities").addEventListener("click", () => {
-    // Collect selected types
+// Apply button
+document.getElementById("btn-apply-facilities-search").addEventListener("click", () => {
     const selected = Array.from(document.querySelectorAll(".facility-check:checked"))
                          .map(cb => cb.value);
 
-    // Clear existing facility markers
     facilityMarkers.forEach(m => map.removeLayer(m));
     facilityMarkers = [];
 
     if (selected.length === 0) return;
 
-    // Build query string
     const params = new URLSearchParams();
     selected.forEach(t => params.append("types", t));
 
     fetch(`/facilities?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
-            data.features.forEach(f => {
+            const features = data.type === "FeatureCollection" ? data.features
+                           : data.type === "Feature"           ? [data]
+                           : [];
+            features.forEach(f => {
+                if (!f.geometry) return;
                 const [x, y] = f.geometry.coordinates;
                 const [lat, lng] = mercatorToLatLng(x, y);
                 const m = L.circleMarker([lat, lng], getFacilityStyle(f.properties.facility_type))
@@ -813,7 +874,20 @@ document.getElementById("btn-apply-facilities").addEventListener("click", () => 
             });
         })
         .catch(err => console.error("Facility filter error:", err));
+
+    document.getElementById("facility-filter-panel").style.display = "none";
 });
+fetch("/facility-types")
+    .then(res => res.json())
+// Group checkbox toggles all children
+document.querySelectorAll(".group-check").forEach(groupCheck => {
+    groupCheck.addEventListener("change", () => {
+        const group = groupCheck.dataset.group;
+        document.querySelectorAll(`.facility-subgroup[data-group="${group}"] .facility-check`)
+            .forEach(cb => cb.checked = groupCheck.checked);
+    });
+});
+
 document.getElementById("btn-area-stats").addEventListener("click", () => {
     const toggle = document.getElementById("area-stats-toggle");
     toggle.style.display = toggle.style.display === 'none' ? 'flex' : 'none';

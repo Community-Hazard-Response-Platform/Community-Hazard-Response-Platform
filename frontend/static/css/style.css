@@ -632,23 +632,56 @@ textarea.input-field {
     z-index: 10001;       /* encima de todo */
 }
 
-#facilities-panel {
-    padding: 8px 0;
+.facility-filter-wrapper {
+    position: relative;
 }
 
-.facility-group {
+/* ── Facility filter wrapper ───────────────────────── */
+.facility-filter-wrapper {
+    position: relative;
+}
+
+.facility-filter-wrapper .btn-primary {
+    width: auto;
+    margin-bottom: 0;
+    height: 42px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+#facility-filter-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: auto;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    padding: 12px;
+    z-index: 2000;
+    min-width: 200px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    font-size: 14px;
+    text-align: left;
+}
+
+#facility-filter-panel .facility-group {
     margin-bottom: 8px;
 }
 
-.facility-group-label {
-    font-weight: bold;
+#facility-filter-panel .facility-group-label {
+    font-weight: 600;
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 6px;
     cursor: pointer;
 }
 
-.facility-subgroup {
+#facility-filter-panel .facility-subgroup {
     margin-left: 20px;
     display: flex;
     flex-direction: column;
@@ -656,10 +689,27 @@ textarea.input-field {
     margin-top: 4px;
 }
 
-.facility-subgroup label {
+#facility-filter-panel .facility-subgroup label {
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 6px;
     cursor: pointer;
-    font-size: 0.9em;
+    font-weight: 400;
+}
+
+#facility-filter-panel input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+#facility-filter-panel .btn-primary {
+    width: 100%;
+    margin-top: 8px;
+    margin-bottom: 0;
+    height: 34px;
+    padding: 0 12px;
 }
