@@ -1472,21 +1472,32 @@ def get_facility_types():
 
 @app.route('/facilities', methods=['GET'])
 def get_facilities():
-    """Returns all facilities as a GeoJSON FeatureCollection.
+    """Returns facilities as a GeoJSON FeatureCollection, optionally filtered by type.
+
+    Query params:
+        types (list): optional list of facility_type values to filter by
 
     Returns:
         GeoJSON FeatureCollection with facility properties and point geometry
     """
+    types = request.args.getlist("types")
+
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
-            SELECT f.osm_id,
-                   f.name_fac,
-                   f.facility_type,
-                   ST_AsGeoJSON(f.geom)::json as geom
-            FROM facility f
-        """)
+        if types:
+            cursor.execute("""
+                SELECT facility_id, name_fac, facility_type,
+                       ST_AsGeoJSON(geom)::json as geom
+                FROM facility
+                WHERE facility_type IN %s
+            """, (tuple(types),))
+        else:
+            cursor.execute("""
+                SELECT facility_id, name_fac, facility_type,
+                       ST_AsGeoJSON(geom)::json as geom
+                FROM facility
+            """)
         facilities = cursor.fetchall()
     finally:
         cursor.close()

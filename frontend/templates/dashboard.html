@@ -43,8 +43,42 @@
         </div>
 
         <button class="btn-primary" id="btn-my-assignments">My Assignments</button>
+    
+        <button class="btn-primary" id="btn-facilities">Facilities</button>
+        <div id="facilities-panel" style="display:none;">
+            <div class="facility-group">
+                <label class="facility-group-label">
+                    <input type="checkbox" class="group-check" data-group="emergency"> Emergency
+                </label>
+                <div class="facility-subgroup" data-group="emergency">
+                    <label><input type="checkbox" class="facility-check" value="hospital"> Hospital</label>
+                    <label><input type="checkbox" class="facility-check" value="fire_station"> Fire Station</label>
+                    <label><input type="checkbox" class="facility-check" value="police"> Police</label>
+                </div>
+            </div>
+            <div class="facility-group">
+                <label class="facility-group-label">
+                    <input type="checkbox" class="group-check" data-group="healthcare"> Healthcare
+                </label>
+                <div class="facility-subgroup" data-group="healthcare">
+                    <label><input type="checkbox" class="facility-check" value="clinic"> Clinic</label>
+                    <label><input type="checkbox" class="facility-check" value="pharmacy"> Pharmacy</label>
+                </div>
+            </div>
+            <div class="facility-group">
+                <label class="facility-group-label">
+                    <input type="checkbox" class="group-check" data-group="shelter"> Shelter
+                </label>
+                <div class="facility-subgroup" data-group="shelter">
+                    <label><input type="checkbox" class="facility-check" value="school"> School</label>
+                    <label><input type="checkbox" class="facility-check" value="community_centre"> Community Centre</label>
+                    <label><input type="checkbox" class="facility-check" value="sports_centre"> Sports Centre</label>
+                </div>
+            </div>
+            <button class="btn-primary" id="btn-apply-facilities">Apply</button>
+        </div>
+
         <button class="btn-primary" id="btn-uncovered">Uncovered Needs</button>
-        <button class="btn-primary" id="btn-facilities">Nearest Facilities</button>
         <button class="btn-primary" id="btn-area-stats">Area Stats</button>
         <div class="button-row" id="area-stats-toggle" style="display:none;">
             <button class="btn-primary" id="btn-parishes">Parishes</button>
@@ -385,19 +419,6 @@ fetch("/facility-types")
             user_id: f.properties.user_id,
             geom: f.geometry
         }, 'offer'));
-    });
-
-
-
-    // to show markers of facilities
-    fetch('/facilities').then(res => res.json()).then(data => {
-        data.features.forEach(f => {
-            const [lat, lng] = mercatorToLatLng(f.geometry.coordinates[0], f.geometry.coordinates[1]);
-            const m = L.circleMarker([lat, lng], getFacilityStyle(f.properties.facility_type))
-                        .bindPopup(`<b>${f.properties.name_fac}</b><br>${f.properties.facility_type}`)
-                        .addTo(map);
-            facilityMarkers.push(m);
-        });
     });
 
     const logoutBtn = document.querySelector(".btn-logout");
@@ -748,8 +769,50 @@ document.getElementById("btn-my-assignments").addEventListener("click", () => {
 });
 
 document.getElementById("btn-uncovered").addEventListener("click", showUncoveredNeeds);
+// Toggle facilities panel
 document.getElementById("btn-facilities").addEventListener("click", () => {
-    alert("Click a need marker and use the 'Nearby Facilities' button in the popup.");
+    const panel = document.getElementById("facilities-panel");
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+});
+
+// Group checkbox toggles all children
+document.querySelectorAll(".group-check").forEach(groupCheck => {
+    groupCheck.addEventListener("change", () => {
+        const group = groupCheck.dataset.group;
+        document.querySelectorAll(`.facility-subgroup[data-group="${group}"] .facility-check`)
+            .forEach(cb => cb.checked = groupCheck.checked);
+    });
+});
+
+// Apply button — fetch and render selected facility types
+document.getElementById("btn-apply-facilities").addEventListener("click", () => {
+    // Collect selected types
+    const selected = Array.from(document.querySelectorAll(".facility-check:checked"))
+                         .map(cb => cb.value);
+
+    // Clear existing facility markers
+    facilityMarkers.forEach(m => map.removeLayer(m));
+    facilityMarkers = [];
+
+    if (selected.length === 0) return;
+
+    // Build query string
+    const params = new URLSearchParams();
+    selected.forEach(t => params.append("types", t));
+
+    fetch(`/facilities?${params.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+            data.features.forEach(f => {
+                const [x, y] = f.geometry.coordinates;
+                const [lat, lng] = mercatorToLatLng(x, y);
+                const m = L.circleMarker([lat, lng], getFacilityStyle(f.properties.facility_type))
+                    .bindPopup(`<b>${f.properties.name_fac || "Unnamed"}</b><br>${f.properties.facility_type}`)
+                    .addTo(map);
+                facilityMarkers.push(m);
+            });
+        })
+        .catch(err => console.error("Facility filter error:", err));
 });
 document.getElementById("btn-area-stats").addEventListener("click", () => {
     const toggle = document.getElementById("area-stats-toggle");

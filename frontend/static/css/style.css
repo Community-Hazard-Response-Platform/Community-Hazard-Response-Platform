@@ -632,3 +632,34 @@ textarea.input-field {
     z-index: 10001;       /* encima de todo */
 }
 
+#facilities-panel {
+    padding: 8px 0;
+}
+
+.facility-group {
+    margin-bottom: 8px;
+}
+
+.facility-group-label {
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.facility-subgroup {
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.facility-subgroup label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
