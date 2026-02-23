@@ -135,7 +135,7 @@ CREATE TABLE administrative_area (
     area_id SERIAL PRIMARY KEY,
     name_area VARCHAR(255) NOT NULL,
     admin_level INTEGER NOT NULL,
-    geom GEOMETRY(Polygon, 3857) NOT NULL
+    geom GEOMETRY(Geometry, 3857) NOT NULL
 );
 
 -- Emergency Facilities (from OSM)

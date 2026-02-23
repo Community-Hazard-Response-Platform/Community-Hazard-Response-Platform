@@ -94,7 +94,7 @@ def transformation(config: dict) -> None:
     admin_areas = pd.concat([municipalities, parishes], ignore_index=True)
     admin_areas = gpd.GeoDataFrame(admin_areas, geometry='geometry', crs='EPSG:3857')
     admin_areas['geometry'] = admin_areas['geometry'].apply(
-        lambda g: g.geoms[0] if g.geom_type == 'MultiPolygon' else g
+        lambda g: g if g.geom_type == 'MultiPolygon' else MultiPolygon([g])
     )
 
     e.info(f"{len(admin_areas)} administrative areas ready")
