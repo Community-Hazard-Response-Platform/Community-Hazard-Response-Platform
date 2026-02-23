@@ -8,8 +8,9 @@ import pandas as pd
 DB_SCHEMA = "public"
 TABLE_ADMIN_AREAS = "administrative_area"
 TABLE_FACILITIES = "facility"
-DOWNLOAD_DIR = "data/original"
-PROCESSED_DIR = "data/processed"
+BASE_DIR = Path(__file__).resolve().parent
+DOWNLOAD_DIR = BASE_DIR / "data" / "original"
+PROCESSED_DIR = BASE_DIR / "data" / "processed"
 
 
 def extraction(config: dict) -> None:
@@ -160,11 +161,19 @@ def parse_args() -> str:
         the name of the configuration file
     """
     parser = argparse.ArgumentParser(description="Hazard Response Platform ETL")
-    parser.add_argument("--config_file", required=False, 
-                       help="The configuration file", 
-                       default="../config/config.yml")
+    parser.add_argument(
+        "--config_file",
+        required=False,
+        help="The configuration file",
+        default="config/config.yml"
+    )
+
     args = parser.parse_args()
-    return args.config_file
+
+    project_root = Path(__file__).resolve().parent.parent
+    config_path = project_root / args.config_file
+
+    return str(config_path)
 
 
 def time_this_function(func, **kwargs) -> str:

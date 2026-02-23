@@ -1,5 +1,5 @@
 from pathlib import Path
-from flask import Flask, redirect, request, jsonify, render_template, url_for, session
+from flask import Flask, json, redirect, request, jsonify, render_template, url_for, session
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
@@ -395,10 +395,11 @@ def reset_password():
 @app.route("/dashboard")
 def dashboard():
     """Renders the main dashboard. Redirects to login if not authenticated."""
+    user_id = session.get('user_id')
+    username = session.get('username')
     if "user_id" not in session:
         return redirect("/")
-    return render_template("dashboard.html", username=session["username"])
-
+    return render_template('dashboard.html', user_id=user_id, username=username)
 
 @app.route("/logout")
 def logout():
@@ -438,7 +439,7 @@ def edit_need(need_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT need_id, title, descrip, urgency, category, ST_AsGeoJSON(geom) AS geom
+        SELECT need_id, user_id, title, descrip, urgency, category, ST_AsGeoJSON(geom) AS geom
         FROM need
         WHERE need_id = %s AND user_id = %s
     """, (need_id, session["user_id"]))
@@ -548,7 +549,7 @@ def create_need():
             ),
             %s
         )
-        RETURNING need_id
+        RETURNING need_id, title, descrip, category, urgency, ST_AsGeoJSON(ST_Transform(ST_SetSRID(ST_MakePoint(%s, %s), 4326), 4326)) AS geom, address_point
     """
 
     values = (
@@ -559,12 +560,14 @@ def create_need():
         body.get("urgency"),
         body.get("longitude"),
         body.get("latitude"),
-        body.get("address_point")
+        body.get("address_point"),
+        body.get("longitude"),  # para devolver geom en GeoJSON
+        body.get("latitude")
     )
 
     try:
         cursor.execute(query, values)
-        need_id = cursor.fetchone()["need_id"]
+        need = cursor.fetchone()
         conn.commit()
     except Exception as e:
         conn.rollback()
@@ -573,7 +576,16 @@ def create_need():
         cursor.close()
         release_db_connection(conn)
 
-    return jsonify({"message": f"Need {need_id} created"}), 201
+    # Devuelve toda la info para el frontend
+    return jsonify({
+        "need_id": need["need_id"],
+        "title": need["title"],
+        "descrip": need["descrip"],
+        "category": need["category"],
+        "urgency": need["urgency"],
+        "geom": need["geom"],
+        "address_point": need["address_point"]
+    }), 201
 
 
 @app.route('/create-need', methods=['GET'])
@@ -605,6 +617,7 @@ def get_uncovered_needs():
         cursor.execute("""
             SELECT
                 n.need_id,
+                n.user_id,
                 n.title,
                 n.descrip,
                 n.address_point,
@@ -906,7 +919,7 @@ def my_needs():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-                    SELECT need_id, user_id, ST_AsGeoJSON(geom) AS geom, title, descrip
+                    SELECT need_id, user_id, ST_AsGeoJSON(geom) AS geom, title, descrip, category, urgency
                     FROM need
                     WHERE user_id=%s
                 """, (user_id,))
@@ -916,7 +929,9 @@ def my_needs():
                 "user_id": row["user_id"],
                 "geom": row["geom"],
                 "title": row["title"],
-                "descrip": row["descrip"]
+                "descrip": row["descrip"],
+                "category": row["category"],
+                "urgency": row["urgency"]
             } 
             for row in cursor.fetchall()
         ]
@@ -933,7 +948,7 @@ def need_details(need_id):
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT n.need_id, n.title, n.descrip, n.urgency, n.category, n.user_id, n.address_point,
+            SELECT n.need_id,  n.user_id, n.title, n.descrip, n.urgency, n.category, n.address_point,
                    ST_AsGeoJSON(n.geom) AS geom
             FROM need n
             WHERE n.need_id = %s
@@ -948,6 +963,7 @@ def need_details(need_id):
             "geometry": geom,
             "properties": {
                 "need_id": row["need_id"],
+                "user_id": row["user_id"],
                 "title": row["title"],
                 "descrip": row["descrip"],
                 "urgency": row["urgency"],
@@ -1651,9 +1667,7 @@ def search():
 
         # Needs
         if filter_type in ("needs", "all"):
-            sql = """SELECT n.need_id, n.title, n.descrip, n.user_id, 
-                    c.name_cat as category, ST_AsGeoJSON(n.geom) AS geom 
-                    FROM need n JOIN category c ON n.category = c.category_id"""
+            sql = "SELECT n.need_id, n.title, n.descrip, c.name_cat AS category, n.urgency, ST_AsGeoJSON(n.geom) AS geom FROM need AS n JOIN status_domain s ON n.status_id = s.status_id AND s.code = 'active' JOIN category c ON n.category = c.category_id"
             if geom_filter:
                 sql += " WHERE ST_Within(geom, %s)"
                 cursor.execute(sql, (geom_filter,))
@@ -1663,9 +1677,7 @@ def search():
 
         # Offers
         if filter_type in ("offers", "all"):
-            sql = """SELECT o.offer_id, o.title, o.descrip, o.user_id,
-                     ST_AsGeoJSON(o.geom) AS geom 
-                     FROM offer o"""
+            sql = "SELECT descrip, ST_AsGeoJSON(geom) AS geom FROM offer AS o JOIN status_domain s ON o.status_id = s.status_id AND s.code = 'active'"
             if geom_filter:
                 sql += " WHERE ST_Within(geom, %s)"
                 cursor.execute(sql, (geom_filter,))

@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 </head>
-<body>
+<body data-user-id="{{ user_id }}">
 
 <div id="map">
     <div class="leaflet-control-zoom leaflet-bar">
@@ -90,15 +90,11 @@
 
 
 
-<body data-user-id="{{ user_id }}">
 
 
 <script>
 
 const CURRENT_USER_ID = parseInt(document.body.dataset.userId);
-
-
-
 
 // Start the map
 var map = L.map('map', { zoomControl: false }).setView([38.7169, -9.1395], 13); // Lisboa
@@ -145,9 +141,9 @@ var assignmentIcon = L.icon({
 });
 
 const facilityStyles = {
-    emergency:  { radius: 6, fillColor: '#d32f2f', color: '#d32f2f', weight: 1, opacity: 1, fillOpacity: 0.9 },
-    healthcare: { radius: 6, fillColor: '#0288d1', color: '#0288d1', weight: 1, opacity: 1, fillOpacity: 0.9 },
-    shelter:    { radius: 6, fillColor: '#388e3c', color: '#388e3c', weight: 1, opacity: 1, fillOpacity: 0.9 }
+    emergency:  { radius: 3, fillColor: '#d32f2f', color: '#d32f2f', weight: 1, opacity: 1, fillOpacity: 0.9 },
+    healthcare: { radius: 3, fillColor: '#0288d1', color: '#0288d1', weight: 1, opacity: 1, fillOpacity: 0.9 },
+    shelter:    { radius: 3, fillColor: '#388e3c', color: '#388e3c', weight: 1, opacity: 1, fillOpacity: 0.9 }
 };
 
 const emergencyTypes  = ['hospitals', 'hospital', 'fire_stations', 'fire_station', 'police'];
@@ -238,7 +234,9 @@ function addInteractiveMarker(item, type) {
 
     if (isOwner) {
         const editUrl = type === "need" ? `/edit-need/${item.id}` : `/edit-offer/${item.id}`;
-        popupHTML += `<button class="btn-primary" onclick="window.location='${editUrl}'">Update</button>`;
+        popupHTML += `<button class="btn-primary" onclick="window.location='${editUrl}'">Update</button>
+                    <button class="btn-primary" onclick="showNearestFacilities(${itemId}, '${item.category}')">Nearby Facilities</button>
+        `;
     } else {
         if (type === 'need') {
             if (isAssigned) {
