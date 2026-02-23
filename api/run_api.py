@@ -1,3 +1,4 @@
+from pathlib import Path
 from flask import Flask, redirect, request, jsonify, render_template, url_for, session
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -11,7 +12,7 @@ import yaml
 from email.message import EmailMessage
 
 
-def load_config(path="../config/config.yml"):
+def load_config(path="config/config.yml"):
     """Loads the YAML configuration file.
 
     Args:
@@ -20,7 +21,9 @@ def load_config(path="../config/config.yml"):
     Returns:
         dict: configuration dictionary
     """
-    with open(path) as f:
+    base_dir = Path(__file__).resolve().parent.parent
+    config_path = base_dir / path
+    with open(config_path) as f:
         return yaml.safe_load(f)
 
 
@@ -1367,74 +1370,6 @@ def my_assignments():
         release_db_connection(conn)
 
     return jsonify({"features": features})
-
-@app.route("/assignments", methods=["POST"])
-def create_assignment():
-
-    data = request.json
-    user_id = session["user_id"]
-
-    need_id = data.get("need_id")
-    offer_id = data.get("offer_id")
-
-    if not need_id and not offer_id:
-        return jsonify({"error": "No item to assign"}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        if need_id and not offer_id:
-            # Accept a need → create a temporary offer based on the need
-            cursor.execute("""
-                INSERT INTO offer (user_id, title, descrip, category, geom, status_id)
-                SELECT %s, title, descrip, category, geom, 
-                       (SELECT status_id FROM status_domain WHERE code='active')
-                FROM need
-                WHERE need_id = %s
-                RETURNING offer_id
-            """, (user_id, need_id))
-            offer_id = cursor.fetchone()["offer_id"]  
-
-        elif offer_id and not need_id:
-            # Accept an offer → create temporary need for the user
-            cursor.execute("""
-                INSERT INTO need (user_id, title, descrip, category, geom, status_id)
-                SELECT %s, title, descrip, category, geom, 
-                       (SELECT status_id FROM status_domain WHERE code='active')
-                FROM offer
-                WHERE offer_id = %s
-                RETURNING need_id
-            """, (user_id, offer_id))
-            need_id = cursor.fetchone()["need_id"]  
-
-
-        # --- CREATE ASSIGNMENT ---
-        cursor.execute("""
-            INSERT INTO assignments (need_id, offer_id, status_ass)
-            VALUES (%s, %s, 'proposed')
-            RETURNING assignment_id
-        """, (need_id, offer_id))
-        assignment_id = cursor.fetchone()["assignment_id"]
-
-        # --- UPDATE STATUS OF NEED AND OFFER ---
-        cursor.execute("""
-            UPDATE need
-            SET status_id = (SELECT status_id FROM status_domain WHERE code='assigned')
-            WHERE need_id = %s
-        """, (need_id,))
-        cursor.execute("""
-            UPDATE offer
-            SET status_id = (SELECT status_id FROM status_domain WHERE code='assigned')
-            WHERE offer_id = %s
-        """, (offer_id,))
-
-        conn.commit()
-
-        return jsonify({"success": True, "assignment_id": assignment_id, "need_id": need_id, "offer_id": offer_id}), 201
-
-    finally:
-        cursor.close()
-        release_db_connection(conn)
 
 
 
