@@ -212,3 +212,4 @@ etl/data/*
 !etl/data/processed/.gitkeep
 config/config.yml
 .DS_Store
+db/backup.sql

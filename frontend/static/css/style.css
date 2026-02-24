@@ -1,4 +1,4 @@
-/* font */
+/* ── Fonts ────────────────────────────────────────────── */
 
 @font-face {
     font-family: 'Satoshi';
@@ -21,15 +21,7 @@
     font-style: normal;
 }
 
-/* logo */
-
-.logo {
-    width: 80px;
-    margin-bottom: 20px;
-}
-
-
-/* globally */
+/* ── Variables ────────────────────────────────────────── */
 
 :root {
     --primary-color: #FFAA00;
@@ -40,7 +32,7 @@
     --border-radius: 20px;
 }
 
-/* reset */
+/* ── Reset ────────────────────────────────────────────── */
 
 * {
     margin: 0;
@@ -48,7 +40,12 @@
     box-sizing: border-box;
 }
 
-/* body */
+input,
+button {
+    font-family: 'Satoshi', sans-serif;
+}
+
+/* ── Body ─────────────────────────────────────────────── */
 
 body {
     font-family: 'Satoshi', sans-serif;
@@ -60,7 +57,14 @@ body {
     color: var(--text-color);
 }
 
-/* white container */
+/* ── Logo ─────────────────────────────────────────────── */
+
+.logo {
+    width: 80px;
+    margin-bottom: 20px;
+}
+
+/* ── Card ─────────────────────────────────────────────── */
 
 .card {
     background-color: var(--white);
@@ -75,6 +79,13 @@ body {
     text-align: center;
 }
 
+.card.card--wide {
+    max-width: 100vw;
+    width: 80%;
+    margin: 20px 0;
+    padding: 20px;
+}
+
 .message {
     display: flex;
     flex-direction: column;
@@ -83,12 +94,12 @@ body {
 
 .form-text {
     font-size: 16px;
-    color: #333;  
+    color: #333;
     font-weight: 400;
     margin-bottom: 20px;
 }
 
-/* person icon */
+/* ── Avatar ───────────────────────────────────────────── */
 
 .avatar {
     margin-bottom: 10px;
@@ -116,20 +127,13 @@ h2 {
     margin-bottom: 20px;
 }
 
-/* form */
+/* ── Form ─────────────────────────────────────────────── */
 
 .form {
     width: 100%;
     display: flex;
     flex-direction: column;
 }
-
-input,
-button {
-    font-family: 'Satoshi', sans-serif;
-}
-
-/* input */
 
 .input-field {
     width: 100%;
@@ -146,7 +150,15 @@ button {
     outline: 2px solid var(--primary-color);
 }
 
-/* primary button, accept */
+textarea.input-field {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 12px;
+    resize: none;
+    min-height: 100px;
+}
+
+/* ── Buttons ──────────────────────────────────────────── */
 
 .btn-primary {
     background-color: var(--primary-color);
@@ -158,21 +170,13 @@ button {
     cursor: pointer;
     transition: 0.2s ease;
     margin-bottom: 20px;
-    text-decoration: none; 
+    text-decoration: none;
     width: 100%;
 }
 
 .btn-primary:hover {
     opacity: 0.9;
     transform: translateY(-1px);
-}
-
-/* secondary buttons */
-
-.secondary-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
 }
 
 .btn-secondary {
@@ -192,6 +196,14 @@ button {
     transform: translateY(-1px);
 }
 
+.secondary-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ── Messages ─────────────────────────────────────────── */
+
 .error-message {
     color: red;
     font-size: 0.9rem;
@@ -199,23 +211,24 @@ button {
 }
 
 .success-message {
-    color: green; 
-    font-size: 0.9rem; 
-    margin-top: 5px; }
+    color: green;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
 
 .requirements {
     text-align: justify;
 }
 
 .requirements li {
-    color: red;       /* by defect not good*/
+    color: red;
 }
 
 .requirements li.valid {
-    color: green;     /* pwd is good */
+    color: green;
 }
 
-
+/* ── Back arrow ───────────────────────────────────────── */
 
 .back-arrow {
     position: absolute;
@@ -231,30 +244,38 @@ button {
     color: #000;
 }
 
+/* ── Dashboard map ────────────────────────────────────── */
 
-/* Dashboard */
-
-#map { 
-    height: 100%; 
-    width: 100%; 
+#map {
+    height: 100%;
+    width: 100%;
 }
 
-/* Sidebar */
+/* ── Sidebar ──────────────────────────────────────────── */
+
 .sidebar {
     position: absolute;
-    top: 0; left: -280px;
+    top: 0;
+    left: -280px;
     width: 280px;
     height: 100%;
     background: #ffffff;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.3);
-    transition: left 0.3s ease;
-    display: flex; 
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+    display: flex;
     flex-direction: column;
     padding: 20px 10px;
     z-index: 999;
-    transition: transform 0.3s ease; 
+    transition: left 0.3s ease;
 }
-.sidebar.active { left: 0; }
+
+.sidebar.open,
+.sidebar.active {
+    left: 0;
+}
+
+.sidebar.closed {
+    transform: translateX(-260px);
+}
 
 .sidebar-btn {
     display: flex;
@@ -263,24 +284,25 @@ button {
     margin: 10px 0;
     padding: 10px 15px;
     cursor: pointer;
-    background: #ff9800; /* naranja */
+    background: #ff9800;
     color: white;
     font-weight: bold;
     border: none;
     border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    transition: left 0.3s ease; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background 0.2s;
 }
+
 .sidebar-btn:hover {
     background: #e68900;
 }
+
 .sidebar-btn span {
     font-size: 18px;
 }
 
-/* Sidebar bottom */
 .sidebar-bottom {
-    margin-top: auto; 
+    margin-top: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -288,25 +310,22 @@ button {
     border-top: 1px solid #ddd;
 }
 
-
 .sidebar-logout {
     padding: 5px 15px;
     border: none;
     border-radius: 8px;
-    background: #f44336; /* rojo */
+    background: #f44336;
     color: white;
     font-weight: bold;
     cursor: pointer;
 }
+
 .sidebar-logout:hover {
     background: #d32f2f;
 }
 
-.sidebar.open {
-    left: 0;
-}
+/* ── Toggle button ────────────────────────────────────── */
 
-/* Toggle button */
 .toggle-btn {
     position: fixed;
     top: 16px;
@@ -314,16 +333,18 @@ button {
     width: 50px;
     height: 50px;
     border-radius: 50%;
+    background-color: var(--primary-color);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 6px;
     padding: 0;
+    cursor: pointer;
     z-index: 1100;
+    transition: left 0.3s ease, background-color 0.2s;
 }
 
-/* Las rayas blancas */
 .toggle-btn .line {
     width: 24px;
     height: 3px;
@@ -331,65 +352,198 @@ button {
     border-radius: 2px;
 }
 
+.toggle-btn.sidebar-open {
+    left: 296px;
+}
 
-/* Search bar */
+/* ── Search bar ───────────────────────────────────────── */
+
 .search-bar {
     position: absolute;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
+    align-items: center;
     gap: 8px;
-    align-items: center; /* centra todo verticalmente */
-    z-index: 1000;
+    z-index: 1100;
     font-family: 'Satoshi', sans-serif;
 }
 
+/* Select and text input — same look as Facilities button */
 .search-bar select,
-.search-bar input {
-    padding: 8px 12px;
-    font-size: 14px;
-    border-radius: 20px;
+#searchInput {
+    height: 42px;
+    border-radius: 25px;
     border: 1px solid #ccc;
-    outline: none;
-    height: 36px; /* uniforme */
     background-color: white;
+    padding: 0 14px;
+    font-size: 14px;
+    font-family: 'Satoshi', sans-serif;
+    color: var(--text-color);
+    outline: none;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+#searchInput {
+    width: 220px;
+}
+
+/* Search button */
+.search-bar .btn-primary {
+    width: auto;
+    height: 42px;
+    margin-bottom: 0;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+/* ── Autocomplete ─────────────────────────────────────── */
+
+.autocomplete-wrapper {
+    position: relative;
+    z-index: 10000;
+    display: flex;
+}
+
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 0 0 12px 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    z-index: 10001;
+}
+
+.autocomplete-list li {
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.autocomplete-list li:hover {
+    background-color: var(--background-color);
+}
+
+/* ── Facility filter ──────────────────────────────────── */
+
+.facility-filter-wrapper {
+    position: relative;
+}
+
+/* Trigger button — white, matches other search bar elements */
+.facility-filter-wrapper .btn-primary {
+    width: auto;
+    height: 42px;
+    margin-bottom: 0;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    background-color: white;
+    color: var(--text-color);
+    border: 1px solid #ccc;
+}
+
+.facility-filter-wrapper .btn-primary:hover {
+    background-color: #f5f5f5;
+    opacity: 1;
+    transform: none;
+}
+
+/* Dropdown panel */
+#facility-filter-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    padding: 12px;
+    z-index: 2000;
+    min-width: 200px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 14px;
+    font-family: 'Satoshi', sans-serif;
+}
+
+#facility-filter-panel .facility-group {
+    margin-bottom: 8px;
+}
+
+#facility-filter-panel .facility-group-label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 4px;
+}
+
+#facility-filter-panel .facility-subgroup {
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+#facility-filter-panel .facility-subgroup label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    font-weight: 400;
     cursor: pointer;
 }
 
-/* Dropdown grande si muchas opciones */
-.search-bar select {
-    max-height: 200px;  /* altura máxima desplegada */
-    overflow-y: auto;   /* scroll vertical si hay muchas opciones */
+#facility-filter-panel input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    accent-color: var(--primary-color);
 }
 
-/* Input ocupa espacio restante */
-.search-bar input {
-    flex: 1;
-    min-width: 180px;
-}
-
-/* Botón naranja igual que btn-primary */
-.search-bar button {
-    padding: 8px 16px;
+/* Apply button inside panel */
+#facility-filter-panel .btn-primary {
+    width: 100%;
+    height: 34px;
+    margin-top: 10px;
+    margin-bottom: 0;
+    padding: 0 12px;
     background-color: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 20px;
-    cursor: pointer;
-    font-weight: 500;
-    height: 36px; /* mismo alto que los selects/input */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.search-bar button:hover {
-    opacity: 0.9;
-}
-
+/* ── User panel ───────────────────────────────────────── */
 
 .user-panel {
     display: flex;
-    align-items: center;   
-    gap: 12px;             
+    align-items: center;
+    gap: 12px;
     margin-top: auto;
 }
 
@@ -399,13 +553,12 @@ button {
     align-items: center;
     justify-content: center;
     transform: scale(0.6);
-    transform-origin: center; 
+    transform-origin: center;
 }
-
 
 .user-info {
     display: flex;
-    flex-direction: column; 
+    flex-direction: column;
 }
 
 .username {
@@ -428,6 +581,7 @@ button {
     background-color: #ff4b4b;
 }
 
+/* ── Sidebar button rows ──────────────────────────────── */
 
 .button-row {
     display: flex;
@@ -446,42 +600,12 @@ button {
     font-size: 1.2rem;
 }
 
-/* Toggle button */
-.toggle-btn {
-    position: fixed;
-    top: 16px;
-    left: 16px; /* posición inicial */
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background-color: var(--primary-color);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    padding: 0;
-    cursor: pointer;
-    z-index: 1100; /* encima del sidebar */
-    transition: left 0.3s ease, background-color 0.2s;
+.btn-add:hover {
+    background-color: #e6a21f;
 }
-
-/* white lines */
-.toggle-btn .line {
-    width: 24px;
-    height: 3px;
-    background-color: white;
-    border-radius: 2px;
-}
-
-/* Toggle when sidebar open */
-.toggle-btn.sidebar-open {
-    left: 296px; /* 280px del sidebar + 16px de margen */
-}
-
 
 .btn-sidebar {
-    flex: 1; 
+    flex: 1;
     padding: 10px;
     background-color: #4b6cb7;
     color: white;
@@ -495,33 +619,7 @@ button {
     background-color: #3a53a0;
 }
 
-
-.btn-add:hover {
-    background-color: #e6a21f;
-}
-
-
-.sidebar.closed {
-    transform: translateX(-260px);
-}
-
-textarea.input-field {
-    font-family: inherit;
-    font-size: 14px;
-    padding: 12px;
-    resize: none;              /* remove resize corner */
-    min-height: 100px;
-    box-sizing: border-box;
-}
-
-.card.card--wide {
-    max-width: 100vw;      
-    width: 80%;
-    margin: 20px 0;        
-    padding: 20px;
-    box-sizing: border-box; 
-}
-
+/* ── Leaflet zoom controls ────────────────────────────── */
 
 .leaflet-control-zoom {
     border: none !important;
@@ -529,9 +627,9 @@ textarea.input-field {
 }
 
 .leaflet-control-zoom a {
-    background-color: #FFAA00 !important;  
+    background-color: #FFAA00 !important;
     color: white !important;
-    border-radius: 50% !important;        
+    border-radius: 50% !important;
     width: 42px;
     height: 42px;
     line-height: 42px;
@@ -539,8 +637,8 @@ textarea.input-field {
     font-size: 20px;
     font-weight: bold;
     border: none !important;
-    margin-bottom: 8px;                    
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    margin-bottom: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     transition: all 0.2s ease;
 }
 
@@ -552,164 +650,4 @@ textarea.input-field {
 .leaflet-bar a:first-child,
 .leaflet-bar a:last-child {
     border-radius: 50% !important;
-}
-
-/* Search bar container */
-.search-bar {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items:baseline;       /* centra verticalmente */
-    gap: 8px;
-    z-index: 1100;
-    font-family: 'Satoshi', sans-serif;
-}
-
-/* Todos los elementos dentro: selects, input y botón */
-.search-bar select,
-.search-bar input,
-.search-bar button {
-    height: 42px;              /* misma altura */
-    border-radius: 25px;
-    font-size: 14px;
-    outline: none;
-    box-sizing: border-box;
-}
-
-/* Selects */
-.search-bar select {
-    padding: 0 14px;
-    border: 1px solid #ccc;
-    background-color: white;
-    cursor: pointer;
-    display: flex;             /* asegura que se alinee con los otros */
-    align-items: center;
-}
-
-/* Input con autocomplete */
-.autocomplete-wrapper {
-    flex: 1;
-    display: flex;
-}
-
-#searchInput {
-    width: 100%;
-    padding: 0 14px;
-    border: 1px solid #ccc;
-    border-radius: 25px;
-}
-
-/* Botón de búsqueda */
-.search-bar button.btn-primary {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 20px; 
-}
-
-
-.autocomplete-wrapper {
-    position: relative;
-    flex: 1;
-    z-index: 10000;       /* más alto que el mapa y sidebar */
-}
-
-.autocomplete-list {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 0 0 8px 8px;
-    max-height: 200px;
-    overflow-y: auto;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    z-index: 10001;       /* encima de todo */
-}
-
-.facility-filter-wrapper {
-    position: relative;
-}
-
-/* ── Facility filter wrapper ───────────────────────── */
-.facility-filter-wrapper {
-    position: relative;
-}
-
-.facility-filter-wrapper .btn-primary {
-    width: auto;
-    margin-bottom: 0;
-    height: 42px;
-    padding: 0 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-}
-
-#facility-filter-panel {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    right: auto;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 12px;
-    padding: 12px;
-    z-index: 2000;
-    min-width: 200px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    font-size: 14px;
-    text-align: left;
-}
-
-#facility-filter-panel .facility-group {
-    margin-bottom: 8px;
-}
-
-#facility-filter-panel .facility-group-label {
-    font-weight: 600;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-}
-
-#facility-filter-panel .facility-subgroup {
-    margin-left: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: 4px;
-}
-
-#facility-filter-panel .facility-subgroup label {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    font-weight: 400;
-}
-
-#facility-filter-panel input[type="checkbox"] {
-    width: 14px;
-    height: 14px;
-    min-width: 14px;
-    cursor: pointer;
-    accent-color: var(--primary-color);
-}
-
-#facility-filter-panel .btn-primary {
-    width: 100%;
-    margin-top: 8px;
-    margin-bottom: 0;
-    height: 34px;
-    padding: 0 12px;
 }
