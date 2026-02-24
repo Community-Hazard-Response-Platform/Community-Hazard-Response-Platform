@@ -78,12 +78,20 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "change-this-in-production")
 
 
 def get_db_connection():
-    """Gets a connection from the pool."""
+    """Gets a connection from the pool.
+
+    Returns:
+        psycopg2 connection with RealDictCursor factory
+    """
     return db_pool.getconn()
 
 
 def release_db_connection(conn):
-    """Returns a connection to the pool."""
+    """Returns a connection to the pool.
+
+    Args:
+        conn: psycopg2 connection to release
+    """
     db_pool.putconn(conn)
 
 
@@ -453,10 +461,27 @@ def get_categories():
 # ─── NEEDS ────────────────────────────────────────────────────────────────────
 @app.route("/edit-need/<int:need_id>")
 def edit_need_page(need_id):
+    """Renders the edit need form.
+
+    Args:
+        need_id (int): need ID from URL
+
+    Returns:
+        Rendered edit_need.html template
+    """
     return render_template("edit_need.html", need_id=need_id)
 
 @app.route("/edit-need/<int:need_id>", methods=["GET"])
 def edit_need(need_id):
+    """Returns a single need for editing, restricted to the current user.
+
+    Args:
+        need_id (int): need ID from URL
+
+    Returns:
+        Rendered edit_need.html template with need data, or 404 if not found
+        or the need does not belong to the current user
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -475,6 +500,22 @@ def edit_need(need_id):
 
 @app.route("/edit-need/<int:need_id>", methods=["POST"])
 def update_need(need_id):
+    """Updates a need's fields and geometry, restricted to the current user.
+
+    Args:
+        need_id (int): need ID from URL
+
+    JSON body:
+        title (str): updated title
+        descrip (str): updated description
+        urgency (int): updated urgency ID
+        category (int): updated category ID
+        address_point (str): updated human-readable address
+        geom (str): updated GeoJSON point geometry (EPSG:4326)
+
+    Returns:
+        JSON with success flag
+    """
     data = request.get_json()  
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -582,7 +623,7 @@ def create_need():
         body.get("longitude"),
         body.get("latitude"),
         body.get("address_point"),
-        body.get("longitude"),  # para devolver geom en GeoJSON
+        body.get("longitude"),
         body.get("latitude")
     )
 
@@ -965,6 +1006,15 @@ def my_needs():
 
 @app.route("/needs/<int:need_id>")
 def need_details(need_id):
+    """Returns a single need as a GeoJSON Feature.
+
+    Args:
+        need_id (int): need ID from URL
+
+    Returns:
+        GeoJSON Feature with need properties and point geometry,
+        or 404 if not found
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -1002,6 +1052,21 @@ def need_details(need_id):
 
 @app.route("/edit-offer/<int:offer_id>", methods=["POST"])
 def update_offer(offer_id):
+    """Updates an offer's fields and geometry, restricted to the current user.
+
+    Args:
+        offer_id (int): offer ID from URL
+
+    JSON body:
+        title (str): updated title
+        descrip (str): updated description
+        category (int): updated category ID
+        address_point (str): updated human-readable address
+        geom (str): updated GeoJSON point geometry (EPSG:4326)
+
+    Returns:
+        JSON with success flag
+    """
     data = request.get_json()
 
     conn = get_db_connection()
@@ -1034,10 +1099,27 @@ def update_offer(offer_id):
 
 @app.route("/edit-offer/<int:offer_id>")
 def edit_offer_page(offer_id):
+    """Renders the edit offer form.
+
+    Args:
+        offer_id (int): offer ID from URL
+
+    Returns:
+        Rendered edit_offer.html template
+    """
     return render_template("edit_offer.html", offer_id=offer_id)
 
 @app.route("/edit-offer/<int:offer_id>", methods=["GET"])
 def edit_offer(offer_id):
+    """Returns a single offer for editing, restricted to the current user.
+
+    Args:
+        offer_id (int): offer ID from URL
+
+    Returns:
+        Rendered edit_offer.html template with offer data, or 404 if not found
+        or the offer does not belong to the current user
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -1065,6 +1147,15 @@ def edit_offer(offer_id):
 
 @app.route("/offers/<int:offer_id>")
 def get_offer(offer_id):
+    """Returns a single offer as a GeoJSON Feature, restricted to the current user.
+
+    Args:
+        offer_id (int): offer ID from URL
+
+    Returns:
+        GeoJSON Feature with offer properties and point geometry,
+        or 404 if not found or the offer does not belong to the current user
+    """
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -1235,14 +1326,13 @@ def my_offers():
 # ─── ASSIGNMENTS ──────────────────────────────────────────────────────────────
 
 def send_assignment_email(to_email, accepter_email, item_type, title):
-    """
-    Sends notification when someone accepts a need or offer.
+    """Sends an email notification when a need or offer is accepted.
 
     Args:
-        to_email (str): email of the owner of the need/offer
-        accepter_email (str): email of the user who accepted
-        item_type (str): "need" or "offer"
-        title (str): title of the accepted item
+        to_email (str): email of the owner of the need or offer being accepted
+        accepter_email (str): email of the user who accepted, included in the notification
+        item_type (str): either "need" or "offer", used in the email body
+        title (str): title of the accepted need or offer
     """
 
     msg = EmailMessage()
