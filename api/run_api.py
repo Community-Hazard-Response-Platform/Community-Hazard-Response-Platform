@@ -4,7 +4,10 @@ from flask import Flask, json, redirect, request, jsonify, render_template, url_
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
-from api.utils import format_geojson
+try:
+    from api.utils import format_geojson
+except ImportError:
+    from utils import format_geojson
 import os
 import bcrypt
 import secrets
