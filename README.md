@@ -183,6 +183,11 @@ The platform is deployed on [Render](https://render.com). When `config/config.ym
 
 ---
 
+## Authors
+
+- [Ricardo Sales Piquer](https://github.com/ricardosp4)
+- [Andrea Belen Cretu Toma](https://github.com/al415615)
+
 ## License
 
 This project is licensed under the [GPL-3.0 License](LICENSE).
