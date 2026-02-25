@@ -15,7 +15,7 @@ import smtplib
 import yaml
 from email.message import EmailMessage
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
+# FINAL VERSION OF THE CODE
 
 def load_config(path="config/config.yml"):
     """Loads the YAML configuration file.
