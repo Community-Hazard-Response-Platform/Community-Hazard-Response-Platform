@@ -179,7 +179,7 @@ The platform is deployed on [Render](https://render.com). When `config/config.ym
 
 ## Database Schema
 
-![Database schema diagram](docs/Community_Hazard_Response_Platform-2026-02-17_20-32.png)
+![Database schema diagram](docs/Community_Hazard_Response_Platform-2026-02-19_19-06.png)
 
 ---
 
