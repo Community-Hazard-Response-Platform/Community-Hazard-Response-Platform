@@ -13,3 +13,4 @@ dependencies:
   - psycopg2-binary
   - requests
   - pyyaml
+  - bcrypt
