@@ -317,7 +317,7 @@ def create_account():
             cursor.execute("""
                 INSERT INTO app_user
                 (username, email, hashed_password, firstname, surname, phone, verification_token, is_verified)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE)
                 RETURNING user_id
             """, (username, email, hashed_password, firstname, surname, phone, verification_token))
 
