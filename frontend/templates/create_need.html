@@ -105,13 +105,13 @@
                 address_point: address_point
             })
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.message) {
-                alert("Need created!");
+        .then(res => {
+            if (res.ok) {
                 window.location.href = "/dashboard";
-            } else if (data.error) {
-                alert("Error: " + data.error);
+            } else {
+                return res.json().then(data => {
+                    alert("Error: " + (data.error || "Something went wrong"));
+                });
             }
         })
         .catch(err => console.error(err));

@@ -848,26 +848,26 @@ def get_nearest_facilities(need_id):
     need_category = request.args.get('need_category', None)
 
     CATEGORY_FACILITY_MAP = {
-        'medical':      ['hospital', 'clinic', 'pharmacy', 'ambulance_station'],
-        'shelter':      ['shelter', 'community_centre', 'sports_centre', 'school'],
-        'food':         ['food_bank', 'community_centre'],
-        'transport':    ['hospital', 'clinic'],
-        'eldercare':    ['hospital', 'clinic', 'pharmacy'],
-        'mental_health':['hospital', 'clinic', 'community_centre'],
-        'childcare':    ['school', 'community_centre'],
-        'pets':         ['veterinary'],
-        'safety':       ['police', 'fire_station', 'emergency_service'],
-        'hygiene':      ['pharmacy', 'community_centre'],
-        'clothing':     ['community_centre', 'shelter'],
-        'repairs':      ['community_centre'],
-        'education':    ['school', 'university'],
-        'tech':         ['community_centre', 'university'],
-        'legal':        ['community_centre'],
-        'logistics':    ['community_centre'],
-        'translation':  ['community_centre'],
-        'social':       ['community_centre'],
-        'donation':     ['community_centre'],
-        'other':        ['community_centre'],
+        'medical':       ['hospitals', 'clinics', 'pharmacies'],
+        'shelter':       ['schools', 'universities', 'community_centres', 'sports_centres'],
+        'food':          ['community_centres'],
+        'transport':     ['hospitals', 'clinics'],
+        'eldercare':     ['hospitals', 'clinics', 'pharmacies'],
+        'mental_health': ['hospitals', 'clinics', 'community_centres'],
+        'childcare':     ['schools', 'community_centres', 'sports_centres'],
+        'safety':        ['police', 'fire_stations'],
+        'hygiene':       ['pharmacies', 'community_centres'],
+        'clothing':      ['community_centres'],
+        'repairs':       ['community_centres'],
+        'education':     ['schools', 'universities'],
+        'tech':          ['community_centres', 'universities'],
+        'legal':         ['community_centres'],
+        'logistics':     ['community_centres'],
+        'translation':   ['community_centres'],
+        'social':        ['community_centres'],
+        'donation':      ['community_centres'],
+        'pets':          ['community_centres'],
+        'other':         ['community_centres'],
     }
 
     conn = get_db_connection()
@@ -981,20 +981,23 @@ def my_needs():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-                    SELECT need_id, user_id, ST_AsGeoJSON(geom) AS geom, title, descrip, category, urgency
-                    FROM need
-                    WHERE user_id=%s
-                """, (user_id,))
+            SELECT n.need_id, n.user_id, ST_AsGeoJSON(n.geom) AS geom,
+                n.title, n.descrip, n.urgency,
+                c.name_cat AS category
+            FROM need n
+            JOIN category c ON n.category = c.category_id
+            WHERE n.user_id = %s
+        """, (user_id,))
         features = [
             {
-                "id": row["need_id"],          
+                "id": row["need_id"],
                 "user_id": row["user_id"],
                 "geom": row["geom"],
                 "title": row["title"],
                 "descrip": row["descrip"],
-                "category": row["category"],
-                "urgency": row["urgency"]
-            } 
+                "urgency": row["urgency"],
+                "category": row["category"]
+            }
             for row in cursor.fetchall()
         ]
     finally:

@@ -758,25 +758,38 @@ function showNearestFacilities(needId, needCategory) {
     fetch(`/needs/${needId}/nearest-facilities?limit=5&need_category=${needCategory}`)
         .then(res => res.json())
         .then(data => {
+            if (data.features.length === 0) {
+                alert("No nearby facilities found for this need.");
+                return;
+            }
+
             const layers = [];
-            data.features.forEach(f => {
+            data.features.forEach((f, index) => {
                 const [x, y] = f.geometry.coordinates;
                 const [lat, lng] = mercatorToLatLng(x, y);
                 const baseStyle = getFacilityStyle(f.properties.facility_type);
+
                 const marker = L.circleMarker([lat, lng], {
-                    radius: 11,
+                    radius: index === 0 ? 14 : 10,       // closest is biggest
                     fillColor: baseStyle.fillColor,
                     color: '#ffffff',
                     weight: 2.5,
                     fillOpacity: 1
                 }).bindPopup(`
-                    <b>${f.properties.name_fac}</b><br>
+                    <b>${f.properties.name_fac || "Unnamed"}</b><br>
                     ${f.properties.facility_type}<br>
                     <small>${Math.round(f.properties.distance_m)}m away</small>
                 `);
+
+                if (index === 0) marker.on('add', () => marker.openPopup());  // open closest
                 layers.push(marker);
             });
+
             nearbyLayer = L.layerGroup(layers).addTo(map);
+
+            // Fit map to show all results
+            const group = L.featureGroup(layers);
+            map.fitBounds(group.getBounds().pad(0.4));
         })
         .catch(err => console.error('Nearest facilities error:', err));
 }
