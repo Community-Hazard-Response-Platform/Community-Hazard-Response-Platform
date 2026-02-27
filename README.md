@@ -20,6 +20,79 @@ Reference data (administrative boundaries and emergency facilities) is kept up t
 
 ---
 
+## Features
+
+### Interactive Map
+
+All needs (🔴 red pins) and offers (🟢 green pins) are displayed on a live Leaflet map. Assigned needs appear in blue. Clicking any marker opens a popup with full details — and if you're a volunteer, an **Accept** button to take on the need directly.
+
+The sidebar gives each user a personal view of their activity: submitted needs and offers, active assignments, and quick **+** buttons to create new ones.
+
+![Map overview with needs, offers and sidebar](docs/01_map_overview.png)
+
+---
+
+### Nearby Offers — Proximity Radius
+
+Clicking a need on the map draws a dashed **2 km radius circle** and highlights matching offers by proximity: bright green circles are within range. The closest offer is shown largest.
+
+![Nearby offers radius view](docs/02_nearby_offers.png)
+
+---
+
+### Nearest Facilities
+
+From any need popup, clicking **Nearby Facilities** surfaces the closest relevant emergency infrastructure — automatically filtered by the need's category (e.g. a medical need returns hospitals, clinics and pharmacies). The nearest result opens its popup automatically and shows the distance in metres.
+
+![Nearest facilities to a need](docs/03_nearest_facilities.png)
+
+---
+
+### Uncovered Needs
+
+The **Uncovered Needs** button highlights all active needs with no matching offer within 2 km. An alert reports the total count and how many are critical. Useful for coordinators scanning for gaps across a wide area.
+
+![Uncovered needs across Portugal](docs/05_uncovered_needs.png)
+
+---
+
+### Area Statistics — Choropleth Map
+
+**Area Stats** switches the map to a choropleth view. Each municipality or parish is coloured by its **gap score** (active needs minus active offers): red means high unmet demand, amber is moderate, green is covered. Clicking any polygon shows the exact need count, offer count and gap for that area.
+
+![Area statistics choropleth by municipality](docs/04_area_stats.png)
+
+---
+
+### Facility Filter
+
+The **Facilities** dropdown overlays real-world infrastructure from OpenStreetMap onto the map. Filter by Emergency (hospitals, fire stations, police), Healthcare (clinics, pharmacies) or Shelter (schools, community centres, sports centres, universities) — or any combination — and apply to see them as colour-coded dots alongside needs and offers.
+
+![Facility filter panel with all categories selected](docs/06_facility_filter.png)
+
+---
+
+### Area Search
+
+The search bar supports **autocomplete by administrative area** (municipality or parish). Typing at least 2 characters fetches matching area names; selecting one filters the map to show only needs, offers and facilities within that area's boundaries using a spatial join.
+
+---
+
+### User Accounts
+
+- Registration with **email verification** (bcrypt password hashing, secure token)
+- Login / logout with session management
+- Profile management: update username, email, name and phone
+- Password reset and account deletion
+
+---
+
+### Assignments
+
+Volunteers can accept a need directly from its map popup. If the volunteer has one matching offer, the assignment is created automatically; if they have several, they are prompted to choose. An **email notification** is sent to the other party on assignment creation. Completing an assignment marks both the need and offer as resolved — enforced by database triggers.
+
+---
+
 ## Architecture
 
 ```
