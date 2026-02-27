@@ -189,10 +189,6 @@ database:
   database: "hazard_response_db"
   username: "your_username"
   password: "your_password"
-
-email:
-  address: "your_email@gmail.com"
-  password: "your_gmail_app_password"
 ```
 
 > `config/config.yml` is gitignored — your credentials will not be committed to version control.
