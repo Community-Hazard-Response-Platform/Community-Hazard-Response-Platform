@@ -31,10 +31,6 @@ database:
   database: "hazard_response_db"
   username: "your_username"
   password: "your_password"
-
-email:
-  address: "your_email@gmail.com"
-  password: "your_app_password"
 ```
 
 > `config/config.yml` is gitignored — your credentials will not be committed to version control.
@@ -48,8 +44,6 @@ If `config/config.yml` is not found (e.g. when deployed to Render), the API fall
 | `DB_NAME` | Database name |
 | `DB_USER` | Database username |
 | `DB_PASSWORD` | Database password |
-| `EMAIL_ADDRESS` | Sender email address |
-| `EMAIL_PASSWORD` | Gmail App Password |
 | `FLASK_SECRET_KEY` | Secret key for session signing |
 
 ### 2. Activate the environment
