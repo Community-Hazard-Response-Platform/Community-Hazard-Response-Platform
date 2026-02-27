@@ -257,8 +257,6 @@ The platform is deployed on [Render](https://render.com). When `config/config.ym
 | `DB_NAME` | Database name |
 | `DB_USER` | Database username |
 | `DB_PASSWORD` | Database password |
-| `EMAIL_ADDRESS` | Sender email address |
-| `EMAIL_PASSWORD` | Gmail App Password |
 | `FLASK_SECRET_KEY` | Secret key for session signing |
 
 ---
