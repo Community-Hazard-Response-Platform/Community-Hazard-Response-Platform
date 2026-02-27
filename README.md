@@ -24,7 +24,7 @@ Reference data (administrative boundaries and emergency facilities) is kept up t
 
 ### Interactive Map
 
-All needs (🔴 red pins) and offers (🟢 green pins) are displayed on a live Leaflet map. Assigned needs appear in blue. Clicking any marker opens a popup with full details — and if you're a volunteer, an **Accept** button to take on the need directly.
+All needs (red pins) and offers (green pins) are displayed on a live Leaflet map. Assigned needs appear in blue. Clicking any marker opens a popup with full details — and if you're a volunteer, an **Accept** button to take on the need directly.
 
 The sidebar gives each user a personal view of their activity: submitted needs and offers, active assignments, and quick **+** buttons to create new ones.
 
