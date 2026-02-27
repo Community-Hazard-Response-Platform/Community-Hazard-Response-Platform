@@ -20,6 +20,19 @@ Reference data (administrative boundaries and emergency facilities) is kept up t
 
 ---
 
+## Table of Contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Module Documentation](#module-documentation)
+- [Deployment](#deployment)
+- [Authors](#authors)
+- [License](#license)
+
+---
+
 ## Features
 
 ### Interactive Map
@@ -247,12 +260,6 @@ The platform is deployed on [Render](https://render.com). When `config/config.ym
 | `EMAIL_ADDRESS` | Sender email address |
 | `EMAIL_PASSWORD` | Gmail App Password |
 | `FLASK_SECRET_KEY` | Secret key for session signing |
-
----
-
-## Database Schema
-
-![Database schema diagram](docs/Community_Hazard_Response_Platform-2026-02-19_19-06.png)
 
 ---
 
