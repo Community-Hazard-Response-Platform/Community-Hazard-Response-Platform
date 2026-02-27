@@ -8,7 +8,6 @@ Flask API for the Community Hazard Response Platform. It handles user authentica
 api/
 ├── run_api.py      # Entry point — Flask app, all routes and database logic
 ├── requirements.txt
-├── __init__.py
 └── utils.py        # GeoJSON formatting helpers
 ```
 
