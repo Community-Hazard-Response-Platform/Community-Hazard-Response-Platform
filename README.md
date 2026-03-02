@@ -3,6 +3,7 @@
 A platform designed to coordinate community responses to local hazards and emergencies. It enables real-time reporting, resource allocation, and communication between residents, volunteers, and emergency services.
 
 🌐 **Live demo:** [community-hazard-response-platform.onrender.com](https://community-hazard-response-platform.onrender.com)
+> Until 25th March
 
 ---
 
@@ -93,7 +94,7 @@ The search bar supports **autocomplete by administrative area** (municipality or
 
 ### User Accounts
 
-- Registration with **email verification** (bcrypt password hashing, secure token)
+- Registration with email verification (bcrypt password hashing, secure token)
 - Login / logout with session management
 - Profile management: update username, email, name and phone
 - Password reset and account deletion
@@ -102,7 +103,7 @@ The search bar supports **autocomplete by administrative area** (municipality or
 
 ### Assignments
 
-Volunteers can accept a need directly from its map popup. If the volunteer has one matching offer, the assignment is created automatically; if they have several, they are prompted to choose. An **email notification** is sent to the other party on assignment creation. Completing an assignment marks both the need and offer as resolved — enforced by database triggers.
+Volunteers can accept a need directly from its map popup. If the volunteer has one matching offer, the assignment is created automatically; if they have several, they are prompted to choose. An email notification is sent to the other party on assignment creation. Completing an assignment marks both the need and offer as resolved, enforced by database triggers.
 
 ---
 
@@ -110,15 +111,15 @@ Volunteers can accept a need directly from its map popup. If the volunteer has o
 
 ```
 Community-Hazard-Response-Platform/
-├── api/                  # Flask API — routes, auth, business logic
+├── api/                    # Flask API — routes, auth, business logic
 ├── config/
 │   ├── config.yml.example  # Shared configuration template
 │   └── config.yml          # Local credentials (gitignored)
-├── db/                   # PostgreSQL/PostGIS schema and seed data
-├── docs/                 # Schema diagrams and documentation assets
-├── etl/                  # ETL pipeline — CAOP and OSM data ingestion
-├── frontend/             # HTML/CSS/JS templates served by Flask
-├── environment.yml       # Shared Conda environment
+├── db/                     # PostgreSQL/PostGIS schema and seed data
+├── docs/                   # Schema diagrams and documentation assets
+├── etl/                    # ETL pipeline with CAOP and OSM data ingestion
+├── frontend/               # HTML/CSS/JS templates served by Flask
+├── environment.yml         # Shared Conda environment
 └── README.md
 ```
 
@@ -142,7 +143,7 @@ The three backend modules share a single PostgreSQL/PostGIS database and a singl
                     └──────────────┘
 ```
 
-- **db** — defines the schema: tables, spatial indexes, triggers and seed data
+- **db** — defines the database schema: tables, spatial indexes, triggers and seed data
 - **etl** — populates the reference layers (`administrative_area`, `facility`) from CAOP and OpenStreetMap
 - **api** — serves the frontend and exposes all endpoints; reads and writes user-generated data (needs, offers, assignments)
 
@@ -152,7 +153,7 @@ The three backend modules share a single PostgreSQL/PostGIS database and a singl
 
 - [Conda](https://docs.conda.io/en/latest/miniconda.html)
 - PostgreSQL 14+ with the [PostGIS](https://postgis.net/install/) extension
-- A Gmail account with an [App Password](https://support.google.com/accounts/answer/185833) (for email verification)
+- An email account with an [App Password](https://support.google.com/accounts/answer/185833) (for email verification)
 
 ---
 
@@ -244,7 +245,7 @@ Each module has its own README with full details:
 
 ## Deployment
 
-The platform is deployed on [Render](https://render.com). When `config/config.yml` is not present, the API falls back to environment variables:
+The platform is deployed on [Render](https://render.com) (until 25th of March). When `config/config.yml` is not present, the API falls back to environment variables:
 
 | Variable | Description |
 |---|---|
